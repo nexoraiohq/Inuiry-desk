@@ -26,33 +26,33 @@ function PanelHeader({
   return (
     <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
       <div className="min-w-0">
-        <h2 className="font-display text-base font-bold tracking-[-0.02em] text-ink">
+        <h2 className="font-display text-base font-semibold tracking-[-0.01em] text-ink">
           {title}
         </h2>
-        <p className="mt-0.5 text-[13px] leading-relaxed font-medium text-muted">
+        <p className="mt-1 text-[13px] leading-relaxed text-muted">
           {description}
         </p>
       </div>
-      <span className="shrink-0 text-xs font-semibold text-subtle">{meta}</span>
+      <span className="shrink-0 text-xs text-subtle">{meta}</span>
     </div>
   );
 }
 
 export default function OverviewPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <section aria-labelledby="metrics-heading">
         <h2 id="metrics-heading" className="sr-only">
           Key metrics
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {METRICS.map((metric) => (
             <MetricCard key={metric.label} {...metric} />
           ))}
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         <Card className="overflow-hidden lg:col-span-2">
           <PanelHeader
             title="Inquiry activity"

@@ -20,14 +20,14 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex items-start gap-3">
-      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface text-subtle">
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-surface text-subtle">
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0">
-        <Heading className="text-sm font-bold tracking-[-0.01em] text-ink">
+        <Heading className="text-sm font-semibold tracking-[-0.01em] text-ink">
           {title}
         </Heading>
-        <p className="mt-1 max-w-md text-[13px] leading-relaxed font-medium text-muted">
+        <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted">
           {description}
         </p>
         {children ? <div className="mt-4">{children}</div> : null}

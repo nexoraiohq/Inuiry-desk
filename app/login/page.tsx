@@ -18,7 +18,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[440px]">
         <div className="flex flex-col items-center text-center">
           <BrandMark className="size-10 rounded-[10px]" />
-          <h1 className="mt-5 font-display text-2xl font-bold tracking-[-0.02em] text-ink">
+          <h1 className="mt-5 font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
             Sign in to Inquiry Desk
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
