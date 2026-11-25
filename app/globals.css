@@ -46,6 +46,11 @@
     letter-spacing: -0.02em;
   }
 
+  /* Apple-thin icon strokes across the entire UI. */
+  .lucide {
+    stroke-width: 1.5;
+  }
+
   /* Uppercase micro-labels used to group sidebar and panel sections. */
   .eyebrow {
     font-size: 11px;

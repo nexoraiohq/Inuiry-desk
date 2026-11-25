@@ -40,7 +40,7 @@ function PanelHeader({
 
 export default function OverviewPage() {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <section aria-labelledby="metrics-heading">
         <h2 id="metrics-heading" className="sr-only">
           Key metrics
@@ -52,7 +52,7 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         <Card className="overflow-hidden lg:col-span-2">
           <PanelHeader
             title="Inquiry activity"
