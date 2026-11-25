@@ -12,7 +12,7 @@ type MetricCardProps = {
  */
 export function MetricCard({ label, icon: Icon }: MetricCardProps) {
   return (
-    <Card className="p-5">
+    <Card className="bg-white/70 p-5 backdrop-blur-md">
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
           <Icon className="size-5" aria-hidden="true" />

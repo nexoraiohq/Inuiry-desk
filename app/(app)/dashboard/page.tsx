@@ -57,7 +57,7 @@ export default function OverviewPage() {
       </section>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <Card className="overflow-hidden lg:col-span-2">
+        <Card className="overflow-hidden bg-white/70 backdrop-blur-md lg:col-span-2">
           <PanelHeader
             title="Inquiry activity"
             description="Every change to an inquiry is recorded here as your team works."
@@ -73,7 +73,7 @@ export default function OverviewPage() {
           </div>
         </Card>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden bg-white/70 backdrop-blur-md">
           <PanelHeader
             title="Follow-ups"
             description="The next step for every potential customer."
