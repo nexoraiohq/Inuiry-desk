@@ -62,7 +62,9 @@ firebase deploy --only firestore:rules
 - `workspaces/{workspaceId}`: access only when `workspaceId == auth.uid`;
   creation requires `ownerUid == auth.uid`; owner cannot change ownerUid.
 - All documents nested under a workspace (`workspaces/{uid}/...`) are also
-  owner-only — this is the boundary that keeps one account's data separate.
+  owner-only; each of `inquiries`, `followUps` and `activities` validates its
+  fields and requires `createdByUid == auth.uid` on create.
+- Activity events are append-only (no client update or delete).
 - All other collections: denied by default.
 - Workspace IDs in the MVP equal the user UID (one private workspace per
   account); `ownerUid` is immutable after creation.
@@ -82,10 +84,31 @@ back after writing and rolls back a newly created auth account if setup fails.
 If an auth account already exists with missing documents, signing in with the
 correct password completes the setup without overwriting existing data.
 
-## 7. What Phase 2 does *not* wire up (yet)
+## 7. Phase 3 workspace data
 
-- Inquiry CRUD, follow-up scheduling, reports — Phase 3+.
-- Admin SDK / server-side session verification — Phase 3+ (currently Firestore
-  rules are the server-side security boundary, evaluated with
-  `request.auth` from the client-issued ID token).
-- Third-party auth providers — Phase 3+.
+The dashboard reads three workspace-scoped subcollections:
+
+| Path | Purpose |
+|---|---|
+| `workspaces/{uid}/inquiries/{inquiryId}` | Customer inquiries and their status |
+| `workspaces/{uid}/followUps/{followUpId}` | Scheduled next steps, with due dates |
+| `workspaces/{uid}/activities/{activityId}` | Append-only event history |
+
+`firestore.indexes.json` defines the composite index required for pending
+follow-ups ordered by `dueAt` (also used for the due-now count). Deploy with:
+
+```
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+The dashboard uses aggregation count queries plus bounded `limit()` queries —
+it never loads a whole collection to calculate metrics. A new workspace shows
+genuine zero counts and real empty states; no seed data is created.
+
+## 8. What Phase 3 does *not* wire up (yet)
+
+- Inquiry creation/editing UI, follow-up creation/editing UI — Phase 4.
+- WhatsApp, email, payments, AI features, staff management — later phases.
+- Admin SDK / server-side session verification — later phases. Firestore rules
+  remain the server-side security boundary.
+- Third-party auth providers — later phases.

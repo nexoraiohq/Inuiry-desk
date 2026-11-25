@@ -1,13 +1,17 @@
 rules_version = '2';
 
-// Inquiry Desk — Firestore security rules (Phase 2).
+// Inquiry Desk — Firestore security rules.
 //
 // The client only ever reads/writes:
-//   users/{uid}       — the signed-in user's own profile
-//   workspaces/{uid}  — the private workspace owned by that same uid
+//   users/{uid}                              — the signed-in user's profile
+//   workspaces/{uid}                        — the private workspace
+//   workspaces/{uid}/inquiries/{id}         — inquiries in that workspace
+//   workspaces/{uid}/followUps/{id}         — follow-ups in that workspace
+//   workspaces/{uid}/activities/{id}        — activity events in that workspace
 //
-// These rules are the security boundary for the workspace data model.
-// Ownership is always checked against request.auth.uid.
+// Ownership is always checked against request.auth.uid. Nested writes must
+// also stamp createdByUid with that same UID, so a client can never create a
+// record on behalf of another user.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -20,16 +24,40 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
-    function validDisplayName(value) {
-      return value is string && value.size() > 0 && value.size() <= 100;
+    function validText(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength;
     }
 
-    function validBusinessName(value) {
-      return value is string && value.size() > 0 && value.size() <= 150;
+    function validNullableText(value, maxLength) {
+      return value == null || validText(value, maxLength);
     }
 
-    function validEmail(value) {
-      return value is string && value.size() > 0 && value.size() <= 254;
+    function validTimestamp(value) {
+      return value is timestamp;
+    }
+
+    function validNullableTimestamp(value) {
+      return value == null || value is timestamp;
+    }
+
+    function validSource(value) {
+      return value in ['whatsapp', 'website', 'phone', 'instagram', 'facebook', 'walk_in', 'referral', 'other'];
+    }
+
+    function validInquiryStatus(value) {
+      return value in ['new', 'contacted', 'qualified', 'converted', 'lost'];
+    }
+
+    function validPriority(value) {
+      return value in ['low', 'normal', 'high'];
+    }
+
+    function validFollowUpStatus(value) {
+      return value in ['pending', 'completed', 'cancelled'];
+    }
+
+    function validActivityType(value) {
+      return value in ['inquiry_created', 'status_changed', 'follow_up_created', 'follow_up_completed', 'note_added'];
     }
 
     function hasTimestamps(create) {
@@ -43,14 +71,14 @@ service cloud.firestore {
       allow read: if isOwner(userId);
 
       allow create: if isOwner(userId)
-        && validDisplayName(request.resource.data.displayName)
-        && validEmail(request.resource.data.email)
+        && validText(request.resource.data.displayName, 100)
+        && validText(request.resource.data.email, 254)
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.workspaceId == userId
         && request.resource.data.createdAt == request.time;
 
       allow update: if isOwner(userId)
-        && validDisplayName(request.resource.data.displayName)
+        && validText(request.resource.data.displayName, 100)
         && request.resource.data.email == resource.data.email
         && request.resource.data.workspaceId == resource.data.workspaceId
         && request.resource.data.createdAt == resource.data.createdAt;
@@ -58,33 +86,114 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
 
-    // ---- Private workspaces -------------------------------------------
+    // ---- Private workspace ---------------------------------------------
     match /workspaces/{workspaceId} {
       allow read: if isOwner(workspaceId);
 
       allow create: if isOwner(workspaceId)
         && request.resource.data.ownerUid == request.auth.uid
-        && validBusinessName(request.resource.data.businessName)
+        && validText(request.resource.data.businessName, 150)
         && hasTimestamps(true);
 
       allow update: if isOwner(workspaceId)
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.ownerUid == request.auth.uid
-        && validBusinessName(request.resource.data.businessName)
+        && validText(request.resource.data.businessName, 150)
         && hasTimestamps(false);
 
       allow delete: if isOwner(workspaceId)
         && resource.data.ownerUid == request.auth.uid;
 
-      // Subcollections (inquiries, follow-ups, reports, etc.) belong to the
-      // same workspace owner. This is the boundary that keeps one user's
-      // data permanently separate from every other user's.
+      // ---- Inquiries ----------------------------------------------------
+      match /inquiries/{inquiryId} {
+        allow read: if isOwner(workspaceId);
+
+        allow create: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == request.auth.uid
+          && validText(request.resource.data.fullName, 100)
+          && validText(request.resource.data.phone, 50)
+          && validNullableText(request.resource.data.email, 254)
+          && validText(request.resource.data['service'], 150)
+          && validSource(request.resource.data.source)
+          && validInquiryStatus(request.resource.data.status)
+          && validPriority(request.resource.data.priority)
+          && validTimestamp(request.resource.data.createdAt)
+          && validTimestamp(request.resource.data.updatedAt)
+          && validNullableTimestamp(request.resource.data.lastContactedAt)
+          && validNullableTimestamp(request.resource.data.nextFollowUpAt)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == resource.data.createdByUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time
+          && validText(request.resource.data.fullName, 100)
+          && validText(request.resource.data.phone, 50)
+          && validNullableText(request.resource.data.email, 254)
+          && validText(request.resource.data['service'], 150)
+          && validSource(request.resource.data.source)
+          && validInquiryStatus(request.resource.data.status)
+          && validPriority(request.resource.data.priority)
+          && validNullableTimestamp(request.resource.data.lastContactedAt)
+          && validNullableTimestamp(request.resource.data.nextFollowUpAt);
+
+        allow delete: if isOwner(workspaceId);
+      }
+
+      // ---- Follow-ups ---------------------------------------------------
+      match /followUps/{followUpId} {
+        allow read: if isOwner(workspaceId);
+
+        allow create: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == request.auth.uid
+          && validText(request.resource.data.inquiryId, 150)
+          && validText(request.resource.data.customerName, 100)
+          && validText(request.resource.data.title, 150)
+          && validTimestamp(request.resource.data.dueAt)
+          && validFollowUpStatus(request.resource.data.status)
+          && validTimestamp(request.resource.data.createdAt)
+          && validTimestamp(request.resource.data.updatedAt)
+          && validNullableTimestamp(request.resource.data.completedAt)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == resource.data.createdByUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time
+          && validText(request.resource.data.inquiryId, 150)
+          && validText(request.resource.data.customerName, 100)
+          && validText(request.resource.data.title, 150)
+          && validTimestamp(request.resource.data.dueAt)
+          && validFollowUpStatus(request.resource.data.status)
+          && validNullableTimestamp(request.resource.data.completedAt);
+
+        allow delete: if isOwner(workspaceId);
+      }
+
+      // ---- Activity events (append-only) -------------------------------
+      match /activities/{activityId} {
+        allow read: if isOwner(workspaceId);
+
+        allow create: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == request.auth.uid
+          && validActivityType(request.resource.data.type)
+          && validNullableText(request.resource.data.inquiryId, 150)
+          && validText(request.resource.data.description, 500)
+          && validTimestamp(request.resource.data.createdAt)
+          && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
+      }
+
+      // Any other nested collection is denied.
       match /{document=**} {
-        allow read, write: if isOwner(workspaceId);
+        allow read, write: if false;
       }
     }
 
-    // Everything else (including any future collection) is denied by default.
+    // Everything else is denied by default.
     match /{document=**} {
       allow read, write: if false;
     }
