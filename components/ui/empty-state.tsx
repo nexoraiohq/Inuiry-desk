@@ -19,15 +19,15 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-surface text-subtle">
+    <div className="flex items-start gap-2.5 sm:gap-3">
+      <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-surface text-subtle sm:size-8">
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0">
-        <Heading className="text-sm font-semibold tracking-[-0.01em] text-ink">
+        <Heading className="text-[13px] font-semibold tracking-[-0.01em] text-ink sm:text-sm">
           {title}
         </Heading>
-        <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted">
+        <p className="mt-1 max-w-md text-[12px] leading-relaxed text-muted sm:text-[13px]">
           {description}
         </p>
         {children ? <div className="mt-4">{children}</div> : null}

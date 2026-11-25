@@ -1,9 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { Menu, PanelLeft } from "lucide-react";
 import { HeaderActions } from "@/components/layout/header-actions";
-import { getNavItem } from "@/lib/navigation";
 
 type TopbarProps = {
   collapsed: boolean;
@@ -12,11 +10,8 @@ type TopbarProps = {
 };
 
 export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps) {
-  const pathname = usePathname();
-  const page = getNavItem(pathname);
-
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center gap-2 border-b border-line bg-white px-4 sm:gap-3 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-canvas px-4 sm:gap-3 lg:px-8">
       <button
         type="button"
         onClick={onOpenMenu}
@@ -36,12 +31,13 @@ export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps)
         <PanelLeft className="size-[18px]" aria-hidden="true" />
       </button>
 
+      {/* The page title lives in the content heading — no duplicate here. */}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-ink">
-          {page.title}
-        </h1>
-        <p className="hidden truncate text-[13px] font-medium text-muted sm:block">
-          {page.description}
+        <p className="truncate font-display text-[14px] font-semibold tracking-[-0.01em] text-ink sm:text-[15px] lg:hidden">
+          Inquiry Desk
+        </p>
+        <p className="hidden truncate text-[11px] font-medium text-subtle lg:block">
+          Workspace
         </p>
       </div>
 

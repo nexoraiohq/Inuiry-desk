@@ -13,7 +13,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const inputBase =
-  "w-full rounded-xl border border-line bg-white px-3.5 text-sm text-ink placeholder:text-subtle " +
+  "w-full rounded-xl border border-line bg-canvas px-3.5 text-sm text-ink placeholder:text-subtle " +
   "transition-colors outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 " +
   "disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted";
 

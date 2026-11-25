@@ -16,11 +16,18 @@ export function BrandMark({ className }: { className?: string }) {
   );
 }
 
-export function BrandName({ className }: { className?: string }) {
+export function BrandName({
+  className,
+  inverted = false,
+}: {
+  className?: string;
+  inverted?: boolean;
+}) {
   return (
     <span
       className={cn(
-        "truncate font-display text-[15px] font-semibold tracking-[-0.02em] text-ink",
+        "truncate font-display text-[15px] font-semibold tracking-[-0.02em]",
+        inverted ? "text-white" : "text-ink",
         className
       )}
     >

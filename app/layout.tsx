@@ -41,6 +41,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${generalSans.variable} ${satoshi.variable} h-full`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Set the theme before paint so there is no light-mode flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('inquiry-desk-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();",
+          }}
+        />
+      </head>
       {/* suppressHydrationWarning: browser extensions (e.g. shortcut helpers)
           inject attributes onto html/body before React hydrates. */}
       <body className="min-h-full antialiased" suppressHydrationWarning>

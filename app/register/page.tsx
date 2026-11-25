@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 function RegisterScreen() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-16">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10 sm:px-6 sm:py-16">
       <div className="w-full max-w-[520px]">
         <div className="flex flex-col items-center text-center">
           <BrandMark className="size-10 rounded-[10px]" />

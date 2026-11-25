@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Avatar } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -18,7 +19,7 @@ function HeaderSearch() {
         type="button"
         disabled
         title="Search arrives in a later phase"
-        className="hidden h-9 w-56 items-center gap-2 rounded-lg border border-line bg-white px-3 text-left text-sm text-subtle md:flex xl:w-64"
+        className="hidden h-9 w-56 items-center gap-2 rounded-lg border border-line bg-canvas px-3 text-left text-sm text-subtle md:flex xl:w-64"
       >
         <Search className="size-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 truncate">Search inquiries…</span>
@@ -89,7 +90,7 @@ export function ProfileMenu() {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-line bg-white p-1 shadow-raised"
+          className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-line bg-canvas p-1 shadow-raised"
         >
           <div className="flex flex-col gap-0.5 px-2.5 py-2.5">
             <p className="text-[13px] font-semibold text-ink">{displayName}</p>
@@ -118,7 +119,8 @@ export function HeaderActions() {
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+      <ThemeToggle />
       <HeaderSearch />
       <button
         type="button"
@@ -134,11 +136,11 @@ export function HeaderActions() {
         disabled
         title="Add Inquiry arrives in Phase 4"
         aria-label="Add Inquiry — coming in Phase 4"
-        className={cn(buttonClasses("primary", "md"), "px-3")}
+        className={cn(buttonClasses("primary", "md"), "px-2.5 sm:px-3")}
       >
         <Plus className="size-4" aria-hidden="true" />
         <span className="hidden sm:inline">Add Inquiry</span>
-        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+        <span className="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider sm:inline">
           Soon
         </span>
       </button>

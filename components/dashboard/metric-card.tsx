@@ -6,26 +6,23 @@ type MetricCardProps = {
   icon: LucideIcon;
 };
 
-/**
- * Placeholder metric. No value is invented — the card states plainly that
- * data is not connected yet.
- */
+/** Placeholder metric — no invented value, just our Phase 1 content. */
 export function MetricCard({ label, icon: Icon }: MetricCardProps) {
   return (
-    <Card className="bg-white/70 p-5 backdrop-blur-md">
-      <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
-          <Icon className="size-5" aria-hidden="true" />
+    <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <p className="min-w-0 truncate text-[12px] font-medium text-muted sm:text-[13px]">{label}</p>
+        <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand sm:size-9">
+          <Icon className="size-[17px] sm:size-[18px]" aria-hidden="true" />
         </span>
-        <p className="truncate text-[13px] font-medium text-muted">{label}</p>
       </div>
       <p
-        className="mt-4 font-display text-[28px] leading-none font-semibold tracking-[-0.02em] text-ink/25"
+        className="mt-3 font-display text-[26px] leading-none font-semibold tracking-[-0.03em] text-ink/50 sm:mt-4 sm:text-[30px]"
         aria-hidden="true"
       >
         —
       </p>
-      <p className="mt-2 text-xs text-subtle">No data yet</p>
+      <p className="mt-2 text-[10px] text-subtle sm:text-[11px]">No data yet</p>
     </Card>
   );
 }

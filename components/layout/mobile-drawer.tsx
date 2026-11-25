@@ -37,7 +37,7 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       <div
-        className="absolute inset-0 bg-ink/25"
+        className="absolute inset-0 bg-[#111827]/40"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -47,29 +47,28 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
         aria-modal="true"
         aria-label="Navigation menu"
         tabIndex={-1}
-        className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-white shadow-raised outline-none"
+        className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-[#111827] text-white shadow-raised outline-none"
       >
-        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-line px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/5 px-5">
           <div className="flex items-center gap-3">
             <BrandMark />
-            <BrandName className="text-base font-bold" />
+            <BrandName inverted className="text-[15px] font-bold" />
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink"
+            className="grid size-9 place-items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
           >
             <X className="size-[18px]" aria-hidden="true" />
           </button>
         </div>
 
-        <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
-          <p className="eyebrow mb-2 px-3 text-subtle">Workspace</p>
-          <NavList onNavigate={onClose} />
+        <nav aria-label="Main" className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-6">
+          <NavList dark onNavigate={onClose} />
         </nav>
 
-        <div className="shrink-0 border-t border-line p-4">
+        <div className="shrink-0 border-t border-white/5 p-4">
           {user ? (
             <button
               type="button"
@@ -83,18 +82,18 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
                   }
                 })();
               }}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-line bg-white text-sm font-medium text-ink hover:bg-surface"
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 text-sm font-medium text-white hover:bg-white/10"
             >
-              <LogOut className="size-4 text-subtle" aria-hidden="true" />
+              <LogOut className="size-4 text-white/60" aria-hidden="true" />
               Sign out
             </button>
           ) : (
             <Link
               href="/login"
               onClick={onClose}
-              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-sm font-medium text-ink hover:bg-surface"
+              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 text-sm font-medium text-white hover:bg-white/10"
             >
-              <User className="size-4 text-subtle" aria-hidden="true" />
+              <User className="size-4 text-white/60" aria-hidden="true" />
               Sign in
             </Link>
           )}

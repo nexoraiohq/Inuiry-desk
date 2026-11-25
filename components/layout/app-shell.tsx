@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const closeMobile = () => setDrawerOpenedAt(null);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface transition-colors duration-200">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main
           id="main-content"
-          className="flex-1 px-6 py-8 sm:px-8 lg:px-12 lg:py-10"
+          className="flex-1 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10"
         >
           <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
