@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Activity, CalendarClock, CircleDot, Inbox, Timer } from "lucide-react";
+
+// Next 16 instant-navigation validation: this segment must opt out of
+// instant navigation prerendering so it renders normally.
+export const instant = false;
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
