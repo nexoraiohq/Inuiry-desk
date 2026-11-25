@@ -117,10 +117,6 @@ export function HeaderActions() {
     return null;
   }
 
-  if (user) {
-    return <ProfileMenu />;
-  }
-
   return (
     <div className="flex shrink-0 items-center gap-2">
       <HeaderSearch />
@@ -146,16 +142,20 @@ export function HeaderActions() {
           Soon
         </span>
       </button>
-      <Link
-        href="/login"
-        className="ml-1 hidden h-9 items-center gap-2 rounded-lg pr-2 pl-1 hover:bg-surface lg:flex"
-        title="Sign in"
-      >
-        <span className="grid size-8 place-items-center rounded-full border border-line bg-surface text-subtle">
-          <User className="size-4" aria-hidden="true" />
-        </span>
-        <span className="text-[13px] font-medium text-ink">Sign in</span>
-      </Link>
+      {user ? (
+        <ProfileMenu />
+      ) : (
+        <Link
+          href="/login"
+          className="ml-1 hidden h-9 items-center gap-2 rounded-lg pr-2 pl-1 hover:bg-surface lg:flex"
+          title="Sign in"
+        >
+          <span className="grid size-8 place-items-center rounded-full border border-line bg-surface text-subtle">
+            <User className="size-4" aria-hidden="true" />
+          </span>
+          <span className="text-[13px] font-medium text-ink">Sign in</span>
+        </Link>
+      )}
     </div>
   );
 }
