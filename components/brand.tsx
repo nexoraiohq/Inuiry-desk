@@ -20,7 +20,7 @@ export function BrandName({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "truncate font-display text-[15px] font-semibold tracking-tight text-ink",
+        "truncate font-display text-[15px] font-bold tracking-[-0.02em] text-ink",
         className
       )}
     >

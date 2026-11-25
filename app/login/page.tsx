@@ -18,7 +18,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[440px]">
         <div className="flex flex-col items-center text-center">
           <BrandMark className="size-10 rounded-[10px]" />
-          <h1 className="mt-5 font-display text-2xl font-semibold tracking-tight text-ink">
+          <h1 className="mt-5 font-display text-2xl font-bold tracking-[-0.02em] text-ink">
             Sign in to Inquiry Desk
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -32,12 +32,12 @@ export default function LoginPage() {
             title="Sign-in is not enabled yet"
             description="Account authentication arrives in a later phase. Until then, you are viewing Inquiry Desk as a guest."
           >
-            <div className="mx-auto flex max-w-xs flex-col items-center gap-3">
+            <div className="flex flex-col items-start gap-3">
               <button
                 type="button"
                 disabled
                 title="Sign-in arrives in a later phase"
-                className={buttonClasses("secondary", "md", "w-full")}
+                className={buttonClasses("secondary", "md")}
               >
                 Sign in
                 <Badge variant="neutral">Soon</Badge>

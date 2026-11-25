@@ -47,7 +47,7 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
         <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-line px-5">
           <div className="flex items-center gap-3">
             <BrandMark />
-            <BrandName />
+            <BrandName className="text-base font-bold" />
           </div>
           <button
             type="button"
@@ -59,7 +59,8 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
           </button>
         </div>
 
-        <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+        <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
+          <p className="eyebrow mb-2 px-3 text-subtle">Workspace</p>
           <NavList onNavigate={onClose} />
         </nav>
 

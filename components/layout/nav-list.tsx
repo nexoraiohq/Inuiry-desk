@@ -28,19 +28,17 @@ export function NavList({ collapsed = false, onNavigate }: NavListProps) {
               aria-current={isActive ? "page" : undefined}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                "group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors",
                 collapsed && "justify-center px-0",
                 isActive
-                  ? "bg-brand-soft text-brand"
-                  : "text-muted hover:bg-surface hover:text-ink"
+                  ? "bg-ink text-white shadow-sm"
+                  : "text-ink/70 hover:bg-surface hover:text-ink"
               )}
             >
               <item.icon
                 className={cn(
                   "size-[18px] shrink-0",
-                  isActive
-                    ? "text-brand"
-                    : "text-subtle group-hover:text-ink"
+                  isActive ? "text-white" : "text-muted group-hover:text-ink"
                 )}
                 aria-hidden="true"
               />

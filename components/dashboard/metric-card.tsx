@@ -12,20 +12,22 @@ type MetricCardProps = {
  */
 export function MetricCard({ label, icon: Icon }: MetricCardProps) {
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[13px] font-medium text-muted">{label}</p>
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface text-subtle">
+    <Card className="p-4">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-line bg-brand-soft text-brand">
           <Icon className="size-4" aria-hidden="true" />
         </span>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-semibold text-ink/80">{label}</p>
+          <p
+            className="mt-1 font-display text-2xl font-bold tracking-[-0.02em] text-ink/30"
+            aria-hidden="true"
+          >
+            —
+          </p>
+          <p className="mt-0.5 text-xs font-medium text-subtle">No data yet</p>
+        </div>
       </div>
-      <p
-        className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink/25"
-        aria-hidden="true"
-      >
-        —
-      </p>
-      <p className="mt-1 text-xs text-subtle">No data yet</p>
     </Card>
   );
 }

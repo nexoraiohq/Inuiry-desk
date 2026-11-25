@@ -10,6 +10,7 @@ type EmptyStateProps = {
   children?: ReactNode;
 };
 
+/** Compact, left-aligned empty state — restrained and product-like. */
 export function EmptyState({
   icon: Icon,
   title,
@@ -18,17 +19,19 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-surface px-6 py-12 text-center">
-      <span className="grid size-11 place-items-center rounded-full border border-line bg-brand-soft text-brand">
-        <Icon className="size-5" aria-hidden="true" />
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface text-subtle">
+        <Icon className="size-4" aria-hidden="true" />
       </span>
-      <Heading className="mt-4 text-[15px] font-semibold tracking-tight text-ink">
-        {title}
-      </Heading>
-      <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted">
-        {description}
-      </p>
-      {children ? <div className="mt-6 w-full">{children}</div> : null}
+      <div className="min-w-0">
+        <Heading className="text-sm font-bold tracking-[-0.01em] text-ink">
+          {title}
+        </Heading>
+        <p className="mt-1 max-w-md text-[13px] leading-relaxed font-medium text-muted">
+          {description}
+        </p>
+        {children ? <div className="mt-4">{children}</div> : null}
+      </div>
     </div>
   );
 }

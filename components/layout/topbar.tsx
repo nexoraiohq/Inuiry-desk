@@ -37,10 +37,10 @@ export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps)
       </button>
 
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-lg font-semibold tracking-tight text-ink">
+        <h1 className="truncate font-display text-[22px] leading-tight font-bold tracking-[-0.02em] text-ink">
           {page.title}
         </h1>
-        <p className="hidden truncate text-[13px] text-muted sm:block">
+        <p className="hidden truncate text-[13px] font-medium text-muted sm:block">
           {page.description}
         </p>
       </div>

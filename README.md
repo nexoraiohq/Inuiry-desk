@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inquiry Desk
 
-## Getting Started
+> Never lose track of a potential customer.
 
-First, run the development server:
+A customer-inquiry workspace for small teams: capture, organize, track, and follow
+up with every potential customer — so nothing slips through.
+
+This repository currently contains **Phase 1: Foundation** — the app shell, the
+visual design system, and route placeholders. No data layer is wired up yet.
+
+---
+
+## Stack
+
+| Layer      | Choice                                    |
+| ---------- | ----------------------------------------- |
+| Framework  | Next.js 16 (App Router, Turbopack)        |
+| Language   | TypeScript (strict)                       |
+| Styling    | Tailwind CSS 4                            |
+| Icons      | Lucide React                              |
+| Fonts      | Local `@font-face` via `next/font/local`  |
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Script          | Purpose                    |
+| --------------- | -------------------------- |
+| `npm run dev`   | Development server         |
+| `npm run build` | Production build           |
+| `npm run start` | Serve the production build |
+| `npm run lint`  | ESLint                     |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route         | State                          |
+| ------------- | ------------------------------ |
+| `/`           | Redirects to `/dashboard`      |
+| `/dashboard`  | Overview: metric + panel shells |
+| `/inquiries`  | Empty state                    |
+| `/follow-ups` | Empty state                    |
+| `/reports`    | Empty state                    |
+| `/settings`   | Empty state                    |
+| `/login`      | Placeholder (auth is later)    |
 
-## Learn More
+All routes are statically rendered.
 
-To learn more about Next.js, take a look at the following resources:
+## Design system
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Tokens live in `app/globals.css` under `@theme`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Token          | Value     | Use                              |
+| -------------- | --------- | -------------------------------- |
+| `canvas`       | `#FFFFFF` | Page background                  |
+| `surface`      | `#F7F8FC` | Subtle fills, hover states       |
+| `line`         | `#E8EAF2` | Borders                          |
+| `ink`          | `#111827` | Primary text, active nav pill    |
+| `muted`        | `#6B7280` | Secondary text                   |
+| `brand`        | `#4F46E5` | Primary action, accents          |
+| `success`      | `#16A34A` | Success states                   |
 
-## Deploy on Vercel
+**Typography** — two local Fontshare families (self-hosted, no Google Fonts):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **General Sans** (400–700) — headings and display; headings render at weight
+  700 with `-0.02em` tracking.
+- **Satoshi** (400/500/700) — body and UI text.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Architecture
+
+```
+app/
+  layout.tsx              Root layout: local fonts, metadata
+  page.tsx                "/" → redirect(/dashboard)
+  globals.css             Design tokens (@theme) + base typography
+  fonts/                  Self-hosted woff2 files
+  login/page.tsx          Standalone route (outside the shell)
+  (app)/
+    layout.tsx            Wraps every signed-in route in AppShell
+    dashboard/…           Overview page
+    inquiries/…           Placeholder
+    follow-ups/…          Placeholder
+    reports/…             Placeholder
+    settings/…            Placeholder
+components/
+  layout/                 AppShell, Sidebar, NavList, MobileDrawer, Topbar, HeaderActions
+  dashboard/              MetricCard placeholder
+  ui/                     Button, Card, Badge, EmptyState primitives
+  brand.tsx               BrandMark / BrandName
+lib/
+  navigation.ts           Single source of truth for nav + page metadata
+```
+
+**Shell behaviour**
+
+- Desktop sidebar collapses between 264px and 76px (icon-only, with tooltips).
+- Below `lg` the sidebar is replaced by a hamburger-opened drawer that closes on
+  Escape, overlay tap, or navigation.
+- The header carries the page title, a search affordance, notifications, profile
+  access, and the primary **Add Inquiry** action.
+
+## Phase 1 scope
+
+Included: foundation, app shell, design system, route placeholders.
+
+Intentionally deferred (placeholders are visibly marked "Soon"):
+
+- Add Inquiry — Phase 4
+- Search, notifications, sign-in
+- AI, payments, WhatsApp/email integrations, staff management, multi-tenant admin
+- Firebase / any data layer
+
+No fake customer data or invented metrics are rendered anywhere; metric cards
+state "No data yet" until a real data source is connected.
