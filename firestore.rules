@@ -75,6 +75,13 @@ service cloud.firestore {
 
       allow delete: if isOwner(workspaceId)
         && resource.data.ownerUid == request.auth.uid;
+
+      // Subcollections (inquiries, follow-ups, reports, etc.) belong to the
+      // same workspace owner. This is the boundary that keeps one user's
+      // data permanently separate from every other user's.
+      match /{document=**} {
+        allow read, write: if isOwner(workspaceId);
+      }
     }
 
     // Everything else (including any future collection) is denied by default.

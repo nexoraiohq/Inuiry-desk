@@ -7,8 +7,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  type User,
 } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import {
   auth,
   db,
@@ -39,11 +40,15 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     "Firebase Auth is not configured for this project.",
 };
 
+function errorCode(error: unknown): string {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    return String((error as { code: unknown }).code);
+  }
+  return "";
+}
+
 function toAuthError(error: unknown): Error {
-  const code =
-    typeof error === "object" && error !== null && "code" in error
-      ? String((error as { code: unknown }).code)
-      : "";
+  const code = errorCode(error);
   const message = AUTH_ERROR_MESSAGES[code];
   if (message) return new Error(message);
   // Never swallow unknown errors: surface them for debugging.
@@ -73,46 +78,84 @@ export type RegisterInput = {
 };
 
 /**
- * Creates the auth account, the users/{uid} profile and the private
- * workspaces/{uid} workspace (workspaceId === uid for the MVP).
+ * Creates the auth account, then the private users/{uid} profile and
+ * workspaces/{uid} workspace. Documents are keyed by the Firebase uid, so one
+ * account can never read or overwrite another account's data (also enforced
+ * by firestore.rules).
  *
- * Partial-failure safety: the workspace/profile writes are retried, and if
- * they still fail the freshly created auth account is rolled back so the user
- * can retry registration cleanly instead of ending up with a half-made account.
+ * If an auth account already exists but its documents are missing (e.g. a
+ * previous setup failed), signing in with the same credentials completes the
+ * setup instead of leaving a half-made account behind.
  */
 export async function registerAccount(input: RegisterInput): Promise<void> {
   const services = requireServices();
   const { fullName, businessName, email, password } = input;
 
-  let credential;
+  let user: User;
+  let createdNow = false;
+
   try {
-    credential = await createUserWithEmailAndPassword(
+    const credential = await createUserWithEmailAndPassword(
       services.auth,
       email,
       password
     );
+    user = credential.user;
+    createdNow = true;
   } catch (error) {
-    throw toAuthError(error);
+    if (errorCode(error) !== "auth/email-already-in-use") {
+      throw toAuthError(error);
+    }
+    // Recover a partially created account without exposing that it exists to
+    // someone who does not know the password: sign in with the given creds.
+    try {
+      const credential = await signInWithEmailAndPassword(
+        services.auth,
+        email,
+        password
+      );
+      user = credential.user;
+    } catch (repairError) {
+      throw toAuthError(repairError);
+    }
   }
 
-  const user = credential.user;
   try {
     await updateProfile(user, { displayName: fullName });
     await writeWorkspaceDocuments(user.uid, fullName, email, businessName);
+    await verifyOwnDocuments(user.uid);
   } catch (error) {
-    let rolledBack = false;
-    try {
-      await user.delete();
-      rolledBack = true;
-    } catch (rollbackError) {
-      // The account exists but setup failed — report that exact state so it
-      // is recoverable (sign in and retry, or try again later).
-      console.error("[auth] rollback failed after setup error", rollbackError);
+    // Only delete an account we created in this call. Never delete a
+    // pre-existing account because its documents failed to write.
+    if (createdNow) {
+      try {
+        await user.delete();
+      } catch (rollbackError) {
+        console.error("[auth] rollback failed after setup error", rollbackError);
+        throw new Error(
+          "Your account was created but workspace setup failed. Please sign in and try again later."
+        );
+      }
     }
-    if (rolledBack) throw toAuthError(error);
-    throw new Error(
-      "Your account was created but workspace setup failed. Please sign in and retry, or try again later."
-    );
+    throw toAuthError(error);
+  }
+}
+
+/** Reads back both private documents to confirm the account was fully stored. */
+async function verifyOwnDocuments(uid: string): Promise<void> {
+  const { db } = requireServices();
+  const [workspace, profile] = await Promise.all([
+    getDoc(doc(db, "workspaces", uid)),
+    getDoc(doc(db, "users", uid)),
+  ]);
+
+  if (
+    !workspace.exists() ||
+    workspace.data().ownerUid !== uid ||
+    !profile.exists() ||
+    profile.data().workspaceId !== uid
+  ) {
+    throw new Error("Workspace setup could not be verified. Please try again.");
   }
 }
 
@@ -129,20 +172,30 @@ async function writeWorkspaceDocuments(
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      // Workspace first: the user profile may only exist once its
-      // workspaceId target exists.
-      await setDoc(workspaceRef, {
-        businessName,
-        ownerUid: uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      await setDoc(userRef, {
-        displayName,
-        email,
-        workspaceId: uid,
-        createdAt: serverTimestamp(),
-      });
+      // Never overwrite an existing workspace — that could destroy a real
+      // user's data during a recovery registration.
+      const [workspaceSnap, userSnap] = await Promise.all([
+        getDoc(workspaceRef),
+        getDoc(userRef),
+      ]);
+
+      // Workspace first: the profile may only reference an existing workspace.
+      if (!workspaceSnap.exists()) {
+        await setDoc(workspaceRef, {
+          businessName,
+          ownerUid: uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          displayName,
+          email,
+          workspaceId: uid,
+          createdAt: serverTimestamp(),
+        });
+      }
       return;
     } catch (error) {
       lastError = error;
@@ -188,6 +241,8 @@ export async function sendPasswordReset(email: string): Promise<void> {
   try {
     await sendPasswordResetEmail(auth, email);
   } catch (error) {
+    // Never reveal whether an account exists for an address.
+    if (errorCode(error) === "auth/user-not-found") return;
     throw toAuthError(error);
   }
 }
