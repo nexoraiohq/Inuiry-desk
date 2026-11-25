@@ -1,4 +1,4 @@
-# Inquiry Desk
+# Inquiry Desk 
 
 > Never lose track of a potential customer.
 
