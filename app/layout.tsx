@@ -38,8 +38,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${generalSans.variable} ${satoshi.variable} h-full`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full antialiased">{children}</body>
+      {/* suppressHydrationWarning: browser extensions (e.g. shortcut helpers)
+          inject attributes onto html/body before React hydrates. */}
+      <body className="min-h-full antialiased" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

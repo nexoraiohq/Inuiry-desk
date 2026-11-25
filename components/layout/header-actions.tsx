@@ -47,7 +47,6 @@ export function HeaderActions() {
         type="button"
         disabled
         title="Add Inquiry arrives in Phase 4"
-        aria-label="Add Inquiry — coming in Phase 4"
         className={buttonClasses("primary", "md")}
       >
         <Plus className="size-4" aria-hidden="true" />
