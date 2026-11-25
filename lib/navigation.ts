@@ -63,6 +63,19 @@ export function getNavItem(pathname: string): NavItem {
   return NAV_ITEMS.find((item) => item.href === pathname) ?? NAV_ITEMS[0];
 }
 
+/**
+ * Validates a post-login redirect target. Only same-origin workspace paths are
+ * allowed; anything else (external URLs, auth pages) falls back to the
+ * dashboard so redirects can never loop or leave the app.
+ */
+export function safeNextPath(raw: string | null | undefined): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  if (raw.startsWith("/login") || raw.startsWith("/register")) {
+    return "/dashboard";
+  }
+  return raw;
+}
+
 /** Document metadata for a route, kept in sync with the visible page title. */
 export function getPageMetadata(pathname: string): Metadata {
   const item = getNavItem(pathname);

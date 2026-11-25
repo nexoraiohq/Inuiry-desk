@@ -17,6 +17,8 @@
   --color-brand-soft: #eef2ff;
   --color-success: #16a34a;
   --color-success-soft: #ecfdf5;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
 
   /* Satoshi carries body + UI text; General Sans carries headings and display. */
   --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;

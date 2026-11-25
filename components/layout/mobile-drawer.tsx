@@ -2,9 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { User, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, User, X } from "lucide-react";
 import { BrandMark, BrandName } from "@/components/brand";
 import { NavList } from "@/components/layout/nav-list";
+import { useAuth } from "@/components/auth/auth-provider";
+import { logout } from "@/lib/auth";
 
 type MobileDrawerProps = {
   onClose: () => void;
@@ -13,6 +16,8 @@ type MobileDrawerProps = {
 /** Off-canvas navigation for small screens. Closes on Escape or overlay tap. */
 export function MobileDrawer({ onClose }: MobileDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -65,14 +70,34 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
         </nav>
 
         <div className="shrink-0 border-t border-line p-4">
-          <Link
-            href="/login"
-            onClick={onClose}
-            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-sm font-medium text-ink hover:bg-surface"
-          >
-            <User className="size-4 text-subtle" aria-hidden="true" />
-            Sign in
-          </Link>
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                void (async () => {
+                  try {
+                    await logout();
+                  } finally {
+                    router.replace("/login");
+                  }
+                })();
+              }}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-line bg-white text-sm font-medium text-ink hover:bg-surface"
+            >
+              <LogOut className="size-4 text-subtle" aria-hidden="true" />
+              Sign out
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              onClick={onClose}
+              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-sm font-medium text-ink hover:bg-surface"
+            >
+              <User className="size-4 text-subtle" aria-hidden="true" />
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </div>
