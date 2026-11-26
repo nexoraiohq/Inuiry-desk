@@ -58,6 +58,14 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+/** Section label shown in the header breadcrumb for the active route. */
+export function getNavSection(pathname: string): string {
+  const item = getNavItem(pathname);
+  if (item.href === "/reports") return "Insights";
+  if (item.href === "/settings") return "Account";
+  return "Workspace";
+}
+
 /** Falls back to the Overview entry for unknown paths. */
 export function getNavItem(pathname: string): NavItem {
   return (

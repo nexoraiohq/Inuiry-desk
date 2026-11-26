@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Menu, PanelLeft } from "lucide-react";
 import { HeaderActions } from "@/components/layout/header-actions";
+import { getNavSection } from "@/lib/navigation";
 
 type TopbarProps = {
   collapsed: boolean;
@@ -10,6 +12,8 @@ type TopbarProps = {
 };
 
 export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps) {
+  const pathname = usePathname();
+  const section = getNavSection(pathname);
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-canvas px-4 sm:gap-3 lg:px-8">
       <button
@@ -37,7 +41,7 @@ export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps)
           Inquiry Desk
         </p>
         <p className="hidden truncate text-[11px] font-medium text-subtle lg:block">
-          Workspace
+          {section}
         </p>
       </div>
 
