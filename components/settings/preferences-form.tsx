@@ -59,18 +59,20 @@ export function PreferencesForm({
       {error ? <div className="mt-4"><Notice tone="danger" message={error} onDismiss={() => setError(null)} /></div> : null}
       {success ? <div className="mt-4"><Notice tone="success" message="Preferences saved." onDismiss={() => setSuccess(false)} /></div> : null}
       <form onSubmit={handleSubmit} className="mt-5 grid gap-4 sm:grid-cols-2">
-        <Field label="Timezone" hint="Valid IANA identifier. Existing timestamps stay absolute.">
-          <Input
-            list="workspace-timezones"
-            value={preferences.timezone}
-            onChange={(e) => setPreferences((current) => ({ ...current, timezone: e.target.value }))}
-            disabled={busy}
-            required
-          />
+        <div className="min-w-0">
+          <Field label="Timezone" hint="Valid IANA identifier. Existing timestamps stay absolute.">
+            <Input
+              list="workspace-timezones"
+              value={preferences.timezone}
+              onChange={(e) => setPreferences((current) => ({ ...current, timezone: e.target.value }))}
+              disabled={busy}
+              required
+            />
+          </Field>
           <datalist id="workspace-timezones">
             {TIMEZONES.map((zone) => <option key={zone} value={zone} />)}
           </datalist>
-        </Field>
+        </div>
         <Field label="Date format">
           <Select
             value={preferences.dateFormat}

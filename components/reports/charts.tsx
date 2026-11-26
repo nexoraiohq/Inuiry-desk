@@ -7,8 +7,8 @@ export function BarList({ values, emptyLabel = "No data" }: { values: NamedValue
   const max = Math.max(...values.map((item) => item.value), 1);
   return (
     <ul className="space-y-2.5">
-      {values.map((item) => (
-        <li key={item.name}>
+      {values.map((item, index) => (
+        <li key={`${item.name}-${index}`}>
           <div className="mb-1 flex items-center justify-between gap-3">
             <span className="truncate text-[12px] text-muted">{item.name.replaceAll("_", " ")}</span>
             <span className="text-[12px] font-semibold tabular-nums text-ink">{item.value}</span>
@@ -33,7 +33,7 @@ export function TrendBars({ points, emptyLabel = "No data in this range" }: { po
   return (
     <div className="flex h-40 items-end gap-1.5" role="img" aria-label="Daily trend">
       {points.map((point, index) => (
-        <div key={point.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+        <div key={`${point.key}-${index}`} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
           <div
             className="w-full max-w-8 rounded-t bg-brand/80"
             style={{ height: `${(point.value / max) * 100}%` }}

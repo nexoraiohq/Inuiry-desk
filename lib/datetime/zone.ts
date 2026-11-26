@@ -82,7 +82,16 @@ export function addDaysInZone(date: Date, days: number): Date {
     return next;
   }
   const parts = zonedParts(date);
-  return zonedDateTimeToDate(parts.year, parts.month, parts.day + days, parts.hour, parts.minute);
+  // Add days on the UTC calendar at noon, then rebuild the wall clock in the
+  // workspace zone. Midnight arithmetic can repeat/skip days around DST.
+  const anchor = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days, 12, 0, 0));
+  return zonedDateTimeToDate(
+    anchor.getUTCFullYear(),
+    anchor.getUTCMonth() + 1,
+    anchor.getUTCDate(),
+    parts.hour,
+    parts.minute
+  );
 }
 
 export function dayKeyInZone(date: Date): string {
