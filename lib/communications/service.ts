@@ -71,7 +71,7 @@ function time(data: Record<string, unknown>, field: string): Date {
 }
 
 
-function parseCommunication(snapshot: DocumentSnapshot): CommunicationRecord {
+export function parseCommunication(snapshot: DocumentSnapshot): CommunicationRecord {
   const data = snapshot.data() as Record<string, unknown>;
   const channel = COMMUNICATION_CHANNELS.includes(data.channel as CommunicationChannel)
     ? (data.channel as CommunicationChannel)

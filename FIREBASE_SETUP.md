@@ -176,11 +176,38 @@ Editing preserves the original inquiry association, `createdAt` and
 `createdByUid`. Communication history is append-only for deletion (no client
 delete is allowed) to preserve the audit trail.
 
-## 11. What Phase 6 does *not* wire up (yet)
+## 11. Phase 7 reporting
+
+`/reports` reads only the authenticated workspace's existing collections over a
+local-timezone date range (`[start, end)`) using Firestore Timestamp range
+queries. Presets cover last 7/30/90 days, this month, previous month and a
+custom range. Reads are bounded to 500 records per collection; when that cap is
+hit the UI says so explicitly.
+
+Definitions:
+- Cohort conversion rate = converted inquiries created in range ÷ all active
+  inquiries created in range × 100. Archived inquiries are excluded and shown
+  separately.
+- Follow-up completion rate = follow-ups created in range and completed in
+  range ÷ follow-ups created in range × 100.
+- Status distribution reflects **current** status only. The data model does not
+  store structured historical conversion dates, so no historical funnel is
+  shown; status transitions come from activity descriptions and are labelled as
+  such.
+- Acquisition uses the existing `source` field; unknown or missing values are
+  grouped as `unknown` without altering records.
+- Communication analytics use explicitly recorded outcomes only — no automatic
+  message or call detection is claimed.
+
+No new composite index is required: date-range queries use single-field
+indexes. No security rules were weakened.
+
+## 12. What Phase 7 does *not* wire up (yet)
 
 - WhatsApp Business API, automatic WhatsApp/SMS sending, email infrastructure,
   email tracking, push notifications — later phases.
-- AI communication suggestions, payments, staff management, advanced reporting — later phases.
+- AI predictions, revenue/profit reporting, payments, invoicing, staff
+  management — later phases.
 - Admin SDK / server-side session verification — later phases. Firestore rules
   remain the server-side security boundary.
 - Third-party auth providers — later phases.
