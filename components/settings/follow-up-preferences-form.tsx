@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { buttonClasses } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { useUnsavedGuard } from "@/components/settings/use-unsaved-guard";
@@ -43,8 +44,19 @@ export function FollowUpPreferencesForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (values.defaultIntervalDays < 1 || values.defaultIntervalDays > 90) {
+    if (
+      values.defaultIntervalDays < 1 ||
+      values.defaultIntervalDays > 90
+    ) {
       setError("Default interval must be between 1 and 90 days.");
+      return;
+    }
+    if (values.reminders.upcomingLeadMinutes < 1 || values.reminders.upcomingLeadMinutes > 1440) {
+      setError("Upcoming reminder lead time must be 1–1440 minutes.");
+      return;
+    }
+    if (values.reminders.overdueFrequencyHours < 1 || values.reminders.overdueFrequencyHours > 168) {
+      setError("Overdue reminder frequency must be 1–168 hours.");
       return;
     }
     if (values.endTime <= values.startTime) {
@@ -106,6 +118,52 @@ export function FollowUpPreferencesForm({
               </label>
             ))}
           </div>
+        </div>
+        <div className="space-y-3 rounded-xl border border-line bg-surface/50 p-4 sm:col-span-2">
+          <p className="text-[13px] font-semibold text-ink">Reminders</p>
+          <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted">
+            <input
+              type="checkbox"
+              checked={values.reminders.remindersEnabled}
+              onChange={(e) => setValues((current) => ({ ...current, reminders: { ...current.reminders, remindersEnabled: e.target.checked } }))}
+              disabled={busy}
+              className="size-4 accent-brand"
+            />
+            Enable follow-up reminders
+          </label>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Lead time (minutes)">
+              <Input
+                type="number"
+                min={1}
+                max={1440}
+                value={values.reminders.upcomingLeadMinutes}
+                onChange={(e) => setValues((current) => ({ ...current, reminders: { ...current.reminders, upcomingLeadMinutes: Number(e.target.value) } }))}
+                disabled={busy || !values.reminders.remindersEnabled}
+              />
+            </Field>
+            <Field label="Overdue frequency (hours)">
+              <Input
+                type="number"
+                min={1}
+                max={168}
+                value={values.reminders.overdueFrequencyHours}
+                onChange={(e) => setValues((current) => ({ ...current, reminders: { ...current.reminders, overdueFrequencyHours: Number(e.target.value) } }))}
+                disabled={busy || !values.reminders.remindersEnabled}
+              />
+            </Field>
+            <Field label="Due reminders">
+              <Select
+                value={values.reminders.dueRemindersEnabled ? "yes" : "no"}
+                onChange={(e) => setValues((current) => ({ ...current, reminders: { ...current.reminders, dueRemindersEnabled: e.target.value === "yes" } }))}
+                disabled={busy || !values.reminders.remindersEnabled}
+              >
+                <option value="yes">Enabled</option>
+                <option value="no">Disabled</option>
+              </Select>
+            </Field>
+          </div>
+          <p className="text-[11px] text-subtle">Delivery: in-app notification center. Email requires an approved provider and is not enabled.</p>
         </div>
         <div className="flex justify-end sm:col-span-2">
           <button type="submit" disabled={busy || !dirty} className={buttonClasses("primary", "md", "h-10")}>

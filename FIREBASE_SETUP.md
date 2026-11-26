@@ -220,7 +220,34 @@ the workspace timezone through shared helpers in `lib/datetime/zone.ts`.
 Account display name is stored in Firebase Auth and the owner's `users/{uid}`
 document. Password changes use Firebase's password reset email flow.
 
-## 13. What Phase 8 does *not* wire up (yet)
+## 13. Phase 9 reminders — architecture recommendation
+
+**Selected:** a provider-independent reminder processor in `lib/reminders/core.ts`,
+exposed through the secured route `POST|GET /api/cron/reminders`. The route
+requires `CRON_SECRET` and uses Firebase Admin credentials
+(`FIREBASE_ADMIN_*`, server-only) so scheduler writes bypass client rules
+safely. Reminder records live in `workspaces/{uid}/notifications`; execution
+jobs in `workspaces/{uid}/reminderJobs`.
+
+**Why not Firebase scheduled Cloud Functions:** the Firebase project is on the
+free Spark plan. Cloud Functions require **Blaze (pay-as-you-go) billing** with
+a payment method. Google Cloud Scheduler is roughly **$0.10/job/month** after
+the no-cost allowance; functions have a generous free invocation tier.
+
+**Why Vercel Cron is the cheapest fit:** the Vercel team is **Hobby**. Vercel
+Cron is included, but Hobby is limited to **2 cron jobs and once-per-day
+execution** (sub-daily expressions are rejected). That is sufficient for a
+daily due/overdue digest but not minute-level upcoming reminders.
+
+**Recommendation:** use Vercel Cron once daily with the secured endpoint for
+the daily digest today; if sub-daily upcoming reminders are required later,
+upgrade Vercel or enable Firebase Blaze and run the same processor on a
+shorter schedule. **No cron or billing was provisioned in this phase.**
+
+No email provider is configured. Delivery is `in_app` only; email requires an
+approved provider and API key before any delivery can be claimed.
+
+## 14. What Phase 9 does *not* wire up (yet)
 
 - WhatsApp Business API, automatic WhatsApp/SMS sending, email infrastructure,
   email tracking, push notifications — later phases.

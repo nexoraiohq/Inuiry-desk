@@ -7,6 +7,10 @@ import {
 } from "@/lib/dashboard/service";
 import { db } from "@/lib/firebase";
 import {
+  DEFAULT_REMINDER_PREFERENCES,
+  type ReminderPreferences,
+} from "@/lib/reminders/types";
+import {
   DATE_FORMATS,
   DEFAULT_FOLLOW_UP_SETTINGS,
   DEFAULT_PREFERENCES,
@@ -83,6 +87,33 @@ function normalizeSources(raw: unknown): WorkspaceSource[] {
   return [...result.values()];
 }
 
+function parseReminderPreferences(value: unknown): ReminderPreferences {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  return {
+    remindersEnabled:
+      typeof raw.remindersEnabled === "boolean"
+        ? raw.remindersEnabled
+        : DEFAULT_REMINDER_PREFERENCES.remindersEnabled,
+    upcomingLeadMinutes:
+      typeof raw.upcomingLeadMinutes === "number" &&
+      raw.upcomingLeadMinutes >= 1 &&
+      raw.upcomingLeadMinutes <= 1440
+        ? raw.upcomingLeadMinutes
+        : DEFAULT_REMINDER_PREFERENCES.upcomingLeadMinutes,
+    dueRemindersEnabled:
+      typeof raw.dueRemindersEnabled === "boolean"
+        ? raw.dueRemindersEnabled
+        : DEFAULT_REMINDER_PREFERENCES.dueRemindersEnabled,
+    overdueFrequencyHours:
+      typeof raw.overdueFrequencyHours === "number" &&
+      raw.overdueFrequencyHours >= 1 &&
+      raw.overdueFrequencyHours <= 168
+        ? raw.overdueFrequencyHours
+        : DEFAULT_REMINDER_PREFERENCES.overdueFrequencyHours,
+    deliveryChannel: "in_app",
+  };
+}
+
 /** Older workspaces simply receive defaults — no destructive migration. */
 export async function getWorkspaceSettings(uid: string): Promise<WorkspaceSettings> {
   requireUid(uid);
@@ -152,6 +183,7 @@ export async function getWorkspaceSettings(uid: string): Promise<WorkspaceSettin
         defaultTime: isValidTime(asText(followUpRaw.defaultTime))
           ? asText(followUpRaw.defaultTime)
           : DEFAULT_FOLLOW_UP_SETTINGS.defaultTime,
+        reminders: parseReminderPreferences(followUpRaw.reminders),
       },
     };
   } catch (error) {
@@ -209,6 +241,13 @@ function validate(input: SettingsInput): WorkspaceSource[] {
     input.followUpSettings.defaultIntervalDays > 90
   ) {
     throw new DashboardServiceError("Default follow-up interval must be 1–90 days.");
+  }
+  const reminders = input.followUpSettings.reminders;
+  if (reminders.upcomingLeadMinutes < 1 || reminders.upcomingLeadMinutes > 1440) {
+    throw new DashboardServiceError("Upcoming reminder lead time must be 1–1440 minutes.");
+  }
+  if (reminders.overdueFrequencyHours < 1 || reminders.overdueFrequencyHours > 168) {
+    throw new DashboardServiceError("Overdue reminder frequency must be 1–168 hours.");
   }
   return sources;
 }

@@ -1,4 +1,6 @@
 import type { InquirySource } from "@/lib/dashboard/types";
+import type { ReminderPreferences } from "@/lib/reminders/types";
+import { DEFAULT_REMINDER_PREFERENCES } from "@/lib/reminders/types";
 
 export const DATE_FORMATS = ["MMM d, yyyy", "dd/MM/yyyy", "yyyy-MM-dd", "MM/dd/yyyy"] as const;
 export type DateFormat = (typeof DATE_FORMATS)[number];
@@ -41,6 +43,7 @@ export type FollowUpSettings = {
   startTime: string;
   endTime: string;
   defaultTime: string;
+  reminders: ReminderPreferences;
 };
 
 export type WorkspaceSettings = {
@@ -82,6 +85,7 @@ export const DEFAULT_FOLLOW_UP_SETTINGS: FollowUpSettings = {
   startTime: "09:00",
   endTime: "17:00",
   defaultTime: "10:00",
+  reminders: DEFAULT_REMINDER_PREFERENCES,
 };
 
 /** Canonical sources keep their original ids so existing records stay valid. */

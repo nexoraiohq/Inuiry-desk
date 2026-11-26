@@ -244,6 +244,7 @@ export async function createFollowUp(
         dueAt,
         priority: input.priority,
         status: "pending",
+        scheduleVersion: 1,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         completedAt: null,
@@ -283,11 +284,18 @@ export async function updateFollowUp(
       const rescheduled = current.dueAt.getTime() !== dueAt.toMillis();
       const notesChanged = (current.description ?? "") !== input.description.trim();
 
+      const raw = snapshot.data() as Record<string, unknown>;
+      const currentVersion =
+        typeof raw.scheduleVersion === "number" && raw.scheduleVersion >= 1
+          ? raw.scheduleVersion
+          : 1;
+
       transaction.update(reference, {
         title: input.title.trim(),
         description: input.description.trim() || null,
         dueAt,
         priority: input.priority,
+        ...(rescheduled ? { scheduleVersion: currentVersion + 1 } : {}),
         updatedAt: serverTimestamp(),
       });
       if (rescheduled) {

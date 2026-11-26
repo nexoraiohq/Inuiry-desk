@@ -89,6 +89,19 @@ service cloud.firestore {
       return value == null || (value is string && value.size() <= maxLength);
     }
 
+    function validReminderSettings(value) {
+      return value == null || (value is map
+        && value.get('remindersEnabled', true) is bool
+        && value.get('upcomingLeadMinutes', 60) is number
+        && value.get('upcomingLeadMinutes', 60) >= 1
+        && value.get('upcomingLeadMinutes', 60) <= 1440
+        && value.get('dueRemindersEnabled', true) is bool
+        && value.get('overdueFrequencyHours', 24) is number
+        && value.get('overdueFrequencyHours', 24) >= 1
+        && value.get('overdueFrequencyHours', 24) <= 168
+        && value.get('deliveryChannel', 'in_app') == 'in_app');
+    }
+
     function validProfile(value) {
       return value == null || (value is map
         && validSettingsText(value.get('description', null), 2000)
@@ -125,7 +138,8 @@ service cloud.firestore {
         && value.get('workingDays', []) is list
         && value.get('startTime', '09:00') is string
         && value.get('endTime', '17:00') is string
-        && value.get('defaultTime', '10:00') is string);
+        && value.get('defaultTime', '10:00') is string
+        && validReminderSettings(value.get('reminders', null)));
     }
 
     // ---- User profiles -------------------------------------------------
@@ -235,6 +249,8 @@ service cloud.firestore {
           && validNullableText(request.resource.data.get('description', null), 2000)
           && validTimestamp(request.resource.data.dueAt)
           && validPriority(request.resource.data.get('priority', 'normal'))
+          && request.resource.data.get('scheduleVersion', 1) is number
+          && request.resource.data.get('scheduleVersion', 1) >= 1
           && validFollowUpStatus(request.resource.data.status)
           && validTimestamp(request.resource.data.createdAt)
           && validTimestamp(request.resource.data.updatedAt)
@@ -252,6 +268,8 @@ service cloud.firestore {
           && validNullableText(request.resource.data.get('description', null), 2000)
           && validTimestamp(request.resource.data.dueAt)
           && validPriority(request.resource.data.get('priority', 'normal'))
+          && request.resource.data.get('scheduleVersion', 1) is number
+          && request.resource.data.get('scheduleVersion', 1) >= 1
           && validFollowUpStatus(request.resource.data.status)
           && validNullableTimestamp(request.resource.data.completedAt);
 
@@ -305,6 +323,25 @@ service cloud.firestore {
 
         // Communication history is retained, not silently deleted.
         allow delete: if false;
+      }
+
+      // ---- Reminder notifications (scheduler-owned) --------------------
+      match /notifications/{notificationId} {
+        allow read: if isOwner(workspaceId);
+
+        // Owners may only mark a reminder as read; all other fields remain
+        // scheduler-owned and cannot be forged by a client.
+        allow update: if isOwner(workspaceId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+          && request.resource.data.readAt == request.time;
+
+        allow create, delete: if false;
+      }
+
+      // ---- Reminder execution jobs (scheduler-owned) -------------------
+      match /reminderJobs/{jobId} {
+        allow read: if isOwner(workspaceId);
+        allow write: if false;
       }
 
       // Any other nested collection is denied.
