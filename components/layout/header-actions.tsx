@@ -1,43 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Search, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { HeaderAddInquiry } from "@/components/inquiries/header-add-inquiry";
-
-function HeaderSearch() {
-  const { status } = useAuth();
-  if (status !== "ready") return null;
-  return (
-    <>
-      <button
-        type="button"
-        disabled
-        title="Search arrives in a later phase"
-        className="hidden h-9 w-56 items-center gap-2 rounded-lg border border-line bg-canvas px-3 text-left text-sm text-subtle md:flex xl:w-64"
-      >
-        <Search className="size-4 shrink-0" aria-hidden="true" />
-        <span className="flex-1 truncate">Search inquiries…</span>
-        <kbd className="rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] font-medium text-subtle">
-          ⌘K
-        </kbd>
-      </button>
-      <button
-        type="button"
-        disabled
-        title="Search arrives in a later phase"
-        aria-label="Search inquiries — coming soon"
-        className="grid size-9 place-items-center rounded-lg text-muted md:hidden"
-      >
-        <Search className="size-[18px]" aria-hidden="true" />
-      </button>
-    </>
-  );
-}
+import { HeaderSearch } from "@/components/layout/header-search";
+import { NotificationsMenu } from "@/components/layout/notifications-menu";
 
 export function ProfileMenu() {
   const { user } = useAuth();
@@ -121,15 +93,7 @@ export function HeaderActions() {
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
       <ThemeToggle />
       <HeaderSearch />
-      <button
-        type="button"
-        disabled
-        title="Notifications arrive in a later phase"
-        aria-label="Notifications — coming soon"
-        className="grid size-9 place-items-center rounded-lg text-muted"
-      >
-        <Bell className="size-[18px]" aria-hidden="true" />
-      </button>
+      <NotificationsMenu />
       <HeaderAddInquiry />
       {user ? (
         <ProfileMenu />
