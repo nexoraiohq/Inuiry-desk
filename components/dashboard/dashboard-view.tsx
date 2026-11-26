@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
+import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
@@ -72,6 +73,7 @@ function DashboardResults({ data }: { data: DashboardData }) {
 }
 
 function WorkspaceOverview({ uid }: { uid: string }) {
+  const { settings } = useWorkspaceSettings();
   const { data, error, loading, retry } = useDashboardData(uid);
   const [today, setToday] = useState<Date | null>(null);
   const page = getNavItem("/dashboard");
@@ -89,6 +91,9 @@ function WorkspaceOverview({ uid }: { uid: string }) {
           <p className="text-[12px] text-muted">
             {today ? formatToday(today) : ""}
           </p>
+          {settings?.businessName ? (
+            <p className="text-[11px] text-subtle">{settings.businessName}</p>
+          ) : null}
           <Link
             href="/inquiries"
             className={buttonClasses("secondary", "md", "h-9")}

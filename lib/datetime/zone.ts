@@ -1,9 +1,18 @@
 /** Workspace timezone helpers. Stored values remain absolute Timestamps. */
 
 let workspaceTimeZone: string | undefined;
+let workspaceDateFormat = "MMM d, yyyy";
 
 export function setWorkspaceTimeZone(timezone?: string): void {
   workspaceTimeZone = timezone || undefined;
+}
+
+export function setWorkspaceDateFormat(format?: string): void {
+  workspaceDateFormat = format || "MMM d, yyyy";
+}
+
+export function getWorkspaceDateFormat(): string {
+  return workspaceDateFormat;
 }
 
 export function getWorkspaceTimeZone(): string | undefined {
@@ -15,6 +24,21 @@ export function formatInZone(date: Date, options: Intl.DateTimeFormatOptions): s
     ...options,
     ...(workspaceTimeZone ? { timeZone: workspaceTimeZone } : {}),
   }).format(date);
+}
+
+export function formatDateInZone(date: Date, format = workspaceDateFormat): string {
+  const parts = zonedParts(date);
+  const y = parts.year;
+  const m = String(parts.month).padStart(2, "0");
+  const d = String(parts.day).padStart(2, "0");
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  if (format === "yyyy-MM-dd") return `${y}-${m}-${d}`;
+  if (format === "dd/MM/yyyy") return `${d}/${m}/${y}`;
+  if (format === "MM/dd/yyyy") return `${m}/${d}/${y}`;
+  return `${months[parts.month - 1]} ${parts.day}, ${y}`;
 }
 
 type Parts = { year: number; month: number; day: number; hour: number; minute: number };

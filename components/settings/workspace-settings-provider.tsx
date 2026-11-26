@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
-import { setWorkspaceTimeZone } from "@/lib/datetime/zone";
+import { setWorkspaceDateFormat, setWorkspaceTimeZone } from "@/lib/datetime/zone";
 import { getWorkspaceSettings } from "@/lib/settings/service";
 import type { WorkspaceSettings } from "@/lib/settings/types";
 
@@ -43,6 +43,7 @@ export function WorkspaceSettingsProvider({ children }: { children: ReactNode })
       setSettings(result);
       setError(null);
       setWorkspaceTimeZone(result.preferences.timezone);
+      setWorkspaceDateFormat(result.preferences.dateFormat);
       rerender((value) => value + 1);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load workspace settings.");

@@ -1,11 +1,6 @@
 /** Display formatting that respects the workspace timezone when configured. */
-import { formatInZone } from "@/lib/datetime/zone";
+import { formatDateInZone, formatInZone } from "@/lib/datetime/zone";
 
-const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-};
 const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   month: "short",
   day: "numeric",
@@ -16,15 +11,10 @@ const TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   hour: "numeric",
   minute: "2-digit",
 };
-const TODAY_OPTIONS: Intl.DateTimeFormatOptions = {
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-};
+
 
 export function formatDate(date: Date): string {
-  return formatInZone(date, DATE_OPTIONS);
+  return formatDateInZone(date);
 }
 
 export function formatDateTime(date: Date): string {
@@ -36,7 +26,8 @@ export function formatTime(date: Date): string {
 }
 
 export function formatToday(date: Date): string {
-  return formatInZone(date, TODAY_OPTIONS);
+  const weekday = formatInZone(date, { weekday: "long" });
+  return `${weekday}, ${formatDateInZone(date)}`;
 }
 
 /** Short relative label with an exact value available through <time dateTime>. */

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BrandMark, BrandName } from "@/components/brand";
 import { NavList } from "@/components/layout/nav-list";
+import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { cn } from "@/lib/cn";
 
 type SidebarProps = {
@@ -10,6 +11,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ collapsed }: SidebarProps) {
+  const { settings } = useWorkspaceSettings();
   // Keyed to the collapsed value it started from, so a manual toggle can
   // never leave a stale flyout open.
   const [hover, setHover] = useState<{ collapsed: boolean; active: boolean } | null>(
@@ -56,8 +58,28 @@ export function Sidebar({ collapsed }: SidebarProps) {
       <div className="shrink-0 border-t border-white/5 p-4">
         {expanded ? (
           <div className="nav-reveal rounded-xl border border-white/5 bg-white/5 p-3">
-            <p className="text-[12px] font-semibold text-white/85">Your workspace</p>
-            <p className="mt-1 text-[11px] text-white/45">Inquiry Desk · Free plan</p>
+            <div className="flex items-center gap-2.5">
+              {settings?.profile.logoUrl ? (
+                <span
+                  className="size-9 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-white/10"
+                  style={{ backgroundImage: `url("${settings.profile.logoUrl}")` }}
+                  role="img"
+                  aria-label={`${settings.businessName} logo`}
+                />
+              ) : (
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-[12px] font-semibold text-white">
+                  {settings?.businessName?.charAt(0).toUpperCase() ?? "I"}
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-semibold text-white/85">
+                  {settings?.businessName ?? "Your workspace"}
+                </p>
+                <p className="mt-0.5 truncate text-[11px] text-white/45">
+                  {settings?.profile.industry || "Inquiry Desk"}
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="mx-auto grid size-9 place-items-center rounded-lg bg-white/5">
