@@ -57,7 +57,7 @@ service cloud.firestore {
     }
 
     function validActivityType(value) {
-      return value in ['inquiry_created', 'status_changed', 'follow_up_created', 'follow_up_completed', 'note_added'];
+      return value in ['inquiry_created', 'status_changed', 'follow_up_created', 'follow_up_completed', 'follow_up_rescheduled', 'follow_up_cancelled', 'follow_up_deleted', 'note_added'];
     }
 
     function hasTimestamps(create) {
@@ -164,7 +164,9 @@ service cloud.firestore {
           && validText(request.resource.data.inquiryId, 150)
           && validText(request.resource.data.customerName, 100)
           && validText(request.resource.data.title, 150)
+          && validNullableText(request.resource.data.get('description', null), 2000)
           && validTimestamp(request.resource.data.dueAt)
+          && validPriority(request.resource.data.get('priority', 'normal'))
           && validFollowUpStatus(request.resource.data.status)
           && validTimestamp(request.resource.data.createdAt)
           && validTimestamp(request.resource.data.updatedAt)
@@ -179,7 +181,9 @@ service cloud.firestore {
           && validText(request.resource.data.inquiryId, 150)
           && validText(request.resource.data.customerName, 100)
           && validText(request.resource.data.title, 150)
+          && validNullableText(request.resource.data.get('description', null), 2000)
           && validTimestamp(request.resource.data.dueAt)
+          && validPriority(request.resource.data.get('priority', 'normal'))
           && validFollowUpStatus(request.resource.data.status)
           && validNullableTimestamp(request.resource.data.completedAt);
 

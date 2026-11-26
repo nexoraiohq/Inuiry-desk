@@ -1,9 +1,12 @@
 import {
   Activity as ActivityIcon,
   CalendarClock,
+  CalendarX2,
   CheckCircle2,
   MessageSquare,
+  RotateCcw,
   StickyNote,
+  Trash2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,6 +20,9 @@ export const activityIcons: Record<ActivityType, LucideIcon> = {
   status_changed: ActivityIcon,
   follow_up_created: CalendarClock,
   follow_up_completed: CheckCircle2,
+  follow_up_rescheduled: RotateCcw,
+  follow_up_cancelled: CalendarX2,
+  follow_up_deleted: Trash2,
   note_added: StickyNote,
 };
 
@@ -25,6 +31,9 @@ export const activityTones: Record<ActivityType, string> = {
   status_changed: "bg-surface text-muted",
   follow_up_created: "bg-brand-soft text-brand",
   follow_up_completed: "bg-success-soft text-success",
+  follow_up_rescheduled: "bg-brand-soft text-brand",
+  follow_up_cancelled: "bg-danger-soft text-danger",
+  follow_up_deleted: "bg-danger-soft text-danger",
   note_added: "bg-surface text-muted",
 };
 

@@ -14,6 +14,11 @@ import {
 } from "lucide-react";
 import { activityIcons, activityTones } from "@/components/dashboard/recent-activity";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
+import {
+  FollowUpGroupBadge,
+  FollowUpPriorityBadge,
+} from "@/components/follow-ups/follow-up-badges";
+import { FollowUpFormDialog } from "@/components/follow-ups/follow-up-form-dialog";
 import { InquiryDetailSkeleton } from "@/components/inquiries/inquiry-detail-skeleton";
 import { InquiryFormDialog } from "@/components/inquiries/inquiry-form-dialog";
 import {
@@ -36,6 +41,7 @@ import {
 } from "@/lib/dashboard/types";
 import { type InquiryDetail as InquiryDetailData } from "@/lib/inquiries/service";
 import { phoneDigits, telHref, whatsappHref } from "@/lib/inquiries/phone";
+import { groupFor } from "@/lib/follow-ups/date";
 import { changeInquiryStatus, getInquiryDetail } from "@/lib/inquiries/service";
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
@@ -60,6 +66,7 @@ export function InquiryDetailView({
   const [notice, setNotice] = useState<string | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
 
   const loadDetail = useCallback(
     async () => getInquiryDetail(uid, inquiryId),
@@ -118,6 +125,14 @@ export function InquiryDetailView({
   }
 
   const { inquiry, followUps, activities } = detail;
+  const pendingFollowUps = followUps.filter((item) => item.status === "pending");
+  const overdueFollowUps = pendingFollowUps.filter(
+    (item) => groupFor(item.status, item.dueAt) === "overdue"
+  );
+  const upcomingFollowUps = pendingFollowUps.filter(
+    (item) => groupFor(item.status, item.dueAt) !== "overdue"
+  );
+  const completedFollowUps = followUps.filter((item) => item.status === "completed");
   const digits = phoneDigits(inquiry.phone);
 
   return (
@@ -225,11 +240,16 @@ export function InquiryDetailView({
       </div>
 
       <Card className="overflow-hidden bg-canvas/80 shadow-card">
-        <div className="border-b border-line px-5 py-4">
-          <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
-            Related follow-ups
-          </h2>
-          <p className="mt-1 text-[13px] text-muted">Scheduled next steps for this inquiry.</p>
+        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
+              Follow-ups
+            </h2>
+            <p className="mt-1 text-[13px] text-muted">Scheduled next steps for this customer.</p>
+          </div>
+          <button type="button" onClick={() => setFollowUpOpen(true)} className={buttonClasses("secondary", "md", "h-9")}>
+            <CalendarClock className="size-4" aria-hidden="true" /> Schedule
+          </button>
         </div>
         {followUps.length === 0 ? (
           <div className="px-5 py-6">
@@ -237,23 +257,43 @@ export function InquiryDetailView({
               icon={CalendarClock}
               headingLevel="h2"
               title="No follow-ups yet"
-              description="Follow-ups will appear here when they are scheduled for this inquiry."
+              description="Schedule a next step so this customer never slips through."
             />
           </div>
         ) : (
-          <ul className="divide-y divide-line/70">
-            {followUps.map((item) => (
-              <li key={item.id} className="flex items-start justify-between gap-3 px-5 py-3.5">
-                <div className="min-w-0">
-                  <p className="text-[13px] font-medium text-ink">{item.title}</p>
-                  <p className="mt-0.5 text-[12px] text-muted">{humanize(item.status)}</p>
+          <div className="divide-y divide-line/70">
+            {[
+              { label: "Overdue", items: overdueFollowUps },
+              { label: "Upcoming", items: upcomingFollowUps },
+              { label: "Completed", items: completedFollowUps },
+            ]
+              .filter((group) => group.items.length > 0)
+              .map((group) => (
+                <div key={group.label}>
+                  <p className="px-5 pt-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">
+                    {group.label} · {group.items.length}
+                  </p>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li key={item.id} className="flex items-start justify-between gap-3 px-5 py-3">
+                        <div className="min-w-0">
+                          <Link href={`/follow-ups/${item.id}`} className="text-[13px] font-medium text-ink hover:text-brand">
+                            {item.title}
+                          </Link>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <FollowUpGroupBadge group={groupFor(item.status, item.dueAt)} />
+                            <FollowUpPriorityBadge priority={item.priority} />
+                          </div>
+                        </div>
+                        <time dateTime={item.dueAt.toISOString()} className="shrink-0 text-[11px] text-subtle">
+                          {formatDateTime(item.dueAt)}
+                        </time>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <time dateTime={item.dueAt.toISOString()} className="shrink-0 text-[11px] text-subtle">
-                  {formatDateTime(item.dueAt)}
-                </time>
-              </li>
-            ))}
-          </ul>
+              ))}
+          </div>
         )}
       </Card>
 
@@ -303,6 +343,16 @@ export function InquiryDetailView({
         inquiry={inquiry}
         open={editOpen}
         onClose={() => setEditOpen(false)}
+        onSaved={(message) => { setNotice(message); refresh(); }}
+      />
+
+      <FollowUpFormDialog
+        key={`follow-up-${inquiry.id}`}
+        uid={uid}
+        inquiries={[inquiry]}
+        fixedInquiryId={inquiry.id}
+        open={followUpOpen}
+        onClose={() => setFollowUpOpen(false)}
         onSaved={(message) => { setNotice(message); refresh(); }}
       />
     </div>

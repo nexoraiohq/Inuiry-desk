@@ -135,10 +135,13 @@ export async function listInquiries(
   requireUid(uid);
   try {
     const base = inquiriesRef(uid);
-    // Single-field query only; sort locally to avoid a composite index wait.
-    const listQuery = query(base, orderBy("createdAt", "desc"), limit(INQUIRY_FETCH_LIMIT));
+    // No field filters in the query: every workspace document is readable and
+    // legacy records without optional fields are handled by parseInquiry.
+    const listQuery = query(base, limit(INQUIRY_FETCH_LIMIT));
     const snapshot = await getDocs(listQuery);
-    const records = snapshot.docs.map(parseInquiry);
+    const records = snapshot.docs.map((doc) =>
+      parseInquiry(doc as Parameters<typeof parseInquiry>[0])
+    );
     return records
       .filter((item) => includeArchived || !item.archived)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -181,8 +184,12 @@ export async function getInquiryDetail(
 
     return {
       inquiry: parseInquiry(inquirySnapshot),
-      followUps: followUps.docs.map(parseFollowUp),
-      activities: activities.docs.map(parseActivity),
+      followUps: followUps.docs.map((doc) =>
+        parseFollowUp(doc as Parameters<typeof parseFollowUp>[0])
+      ),
+      activities: activities.docs.map((doc) =>
+        parseActivity(doc as Parameters<typeof parseActivity>[0])
+      ),
     };
   } catch (error) {
     throw toServiceError(error);

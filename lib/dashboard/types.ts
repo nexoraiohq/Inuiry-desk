@@ -33,6 +33,9 @@ export const ACTIVITY_TYPES = [
   "status_changed",
   "follow_up_created",
   "follow_up_completed",
+  "follow_up_rescheduled",
+  "follow_up_cancelled",
+  "follow_up_deleted",
   "note_added",
 ] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
@@ -63,7 +66,9 @@ export type FollowUpDocument = {
   inquiryId: string;
   customerName: string;
   title: string;
+  description: string | null;
   dueAt: Timestamp;
+  priority: InquiryPriority;
   status: FollowUpStatus;
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Plus, Search, User } from "lucide-react";
+import { Bell, Search, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { buttonClasses } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
+import { HeaderAddInquiry } from "@/components/inquiries/header-add-inquiry";
 
 function HeaderSearch() {
   const { status } = useAuth();
@@ -131,19 +130,7 @@ export function HeaderActions() {
       >
         <Bell className="size-[18px]" aria-hidden="true" />
       </button>
-      <button
-        type="button"
-        disabled
-        title="Add Inquiry arrives in Phase 4"
-        aria-label="Add Inquiry — coming in Phase 4"
-        className={cn(buttonClasses("primary", "md"), "px-2.5 sm:px-3")}
-      >
-        <Plus className="size-4" aria-hidden="true" />
-        <span className="hidden sm:inline">Add Inquiry</span>
-        <span className="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider sm:inline">
-          Soon
-        </span>
-      </button>
+      <HeaderAddInquiry />
       {user ? (
         <ProfileMenu />
       ) : (

@@ -137,10 +137,32 @@ Pinned inquiries always sort first. The queries use single-field indexes only;
 the `archived + ...` composite indexes in `firestore.indexes.json` are optional
 optimizations and are not required for the dashboard or list to work.
 
-## 9. What Phase 4 does *not* wire up (yet)
+## 9. Phase 5 follow-up engine
 
-- Follow-up scheduling/management UI — Phase 5.
-- WhatsApp API, email automation, payments, AI features, staff management — later phases.
+`/follow-ups` and `/follow-ups/[id]` manage `workspaces/{uid}/followUps/{id}`.
+Follow-ups store `description`, `priority`, `dueAt`, `status`, `completedAt`
+and the creator UID. Legacy records without `description` or `priority` are
+read with safe defaults (`null` / `normal`).
+
+Dates and times are entered and displayed in the viewer's local timezone and
+stored as absolute Firestore Timestamps. Groups are computed dynamically:
+overdue, due today, upcoming, completed, cancelled.
+
+Creating, editing, completing, rescheduling, cancelling and permanently
+deleting use transactions that also write an activity event
+(`follow_up_created`, `follow_up_rescheduled`, `follow_up_completed`,
+`follow_up_cancelled`, `follow_up_deleted`, `note_added`) and keep
+`inquiries.nextFollowUpAt` equal to the earliest remaining pending date (or
+`null` when none remain). Activity descriptions stay generic — no phone,
+email or note contents.
+
+The dashboard's "Follow-ups due" metric counts pending follow-ups with
+`dueAt <= now`; the "Upcoming follow-ups" list shows only future pending items.
+
+## 10. What Phase 5 does *not* wire up (yet)
+
+- WhatsApp API messaging, SMS, email automation, push notifications — later phases.
+- AI recommendations, payments, staff management, advanced reporting — later phases.
 - Admin SDK / server-side session verification — later phases. Firestore rules
   remain the server-side security boundary.
 - Third-party auth providers — later phases.
