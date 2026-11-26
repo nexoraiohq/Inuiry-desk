@@ -20,9 +20,9 @@ import { listInquiries } from "@/lib/inquiries/service";
 import {
   deleteAllReminders,
   deleteReminder,
-  listReminders,
   markAllRemindersRead,
   markReminderRead,
+  subscribeReminders,
 } from "@/lib/reminders/client";
 import type { ReminderNotification } from "@/lib/reminders/types";
 
@@ -50,14 +50,12 @@ export function NotificationsMenu() {
         listInquiries(user.uid),
       ]);
       await syncDerivedNotifications(user.uid, followUps, inquiries);
-      const reminders = await listReminders(user.uid);
       const now = new Date();
       setSummary({
         overdue: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "overdue").length,
         today: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "today").length,
         newInquiries: inquiries.filter((item) => !item.archived && item.status === "new").length,
       });
-      setReminders(reminders);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not refresh notifications.");
     } finally {
@@ -70,6 +68,18 @@ export function NotificationsMenu() {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [status, user, load]);
+
+  useEffect(() => {
+    if (status !== "ready" || !user) return;
+    return subscribeReminders(
+      user.uid,
+      (items) => {
+        setReminders(items);
+        setLoading(false);
+      },
+      (message) => setError(message)
+    );
+  }, [status, user]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,9 +98,12 @@ export function NotificationsMenu() {
   }, [open]);
 
   const unread = reminders.filter((item) => item.readAt === null);
-  const showDerivedFollowUps = unread.length === 0;
-  const showDerivedNewInquiries = !reminders.some((item) => item.type === "new_inquiry");
-  const total = (showDerivedNewInquiries ? summary.newInquiries : 0) + unread.length;
+  const showDerivedFollowUps = reminders.length === 0;
+  const showDerivedNewInquiries = reminders.length === 0;
+  const derivedCount =
+    (showDerivedFollowUps ? summary.overdue + summary.today : 0) +
+    (showDerivedNewInquiries ? summary.newInquiries : 0);
+  const total = unread.length + derivedCount;
 
   function notificationIcon(type: string) {
     if (type === "new_inquiry") return Inbox;
@@ -188,7 +201,7 @@ export function NotificationsMenu() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           {isUnread ? <span className="size-1.5 shrink-0 rounded-full bg-brand" aria-label="Unread" /> : null}
-                          <Link href={href} onClick={() => setOpen(false)} className={`truncate text-[12px] text-ink hover:text-brand ${isUnread ? "font-semibold" : "font-medium"}`}>
+                          <Link href={href} onClick={() => setOpen(false)} className={`truncate text-[12px] hover:text-brand ${isUnread ? "font-semibold text-ink" : "font-normal text-subtle"}`}>
                             {item.title}
                           </Link>
                         </div>

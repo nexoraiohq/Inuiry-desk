@@ -123,7 +123,7 @@ service cloud.firestore {
         && validSettingsText(value.get('timezone', null), 64)
         && value.get('dateFormat', 'MMM d, yyyy') in ['MMM d, yyyy', 'dd/MM/yyyy', 'yyyy-MM-dd', 'MM/dd/yyyy']
         && value.get('weekStartsOn', 1) in [0, 1, 6]
-        && value.get('defaultReportingPeriod', '30d') in ['7d', '30d', '90d', 'thisMonth']);
+        && value.get('defaultReportingPeriod', '30d') in ['7d', '30d', '90d', 'thisMonth', 'all']);
     }
 
     function validInquirySettings(value) {
@@ -181,11 +181,13 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && validText(request.resource.data.businessName, 150)
         && hasTimestamps(false)
-        && request.resource.data.keys().hasOnly(['businessName', 'ownerUid', 'createdAt', 'updatedAt', 'profile', 'preferences', 'inquirySettings', 'followUpSettings'])
+        && request.resource.data.keys().hasOnly(['businessName', 'ownerUid', 'createdAt', 'updatedAt', 'profile', 'preferences', 'inquirySettings', 'followUpSettings', 'notificationClearedAt'])
         && validProfile(request.resource.data.get('profile', null))
         && validPreferences(request.resource.data.get('preferences', null))
         && validInquirySettings(request.resource.data.get('inquirySettings', null))
-        && validFollowUpSettings(request.resource.data.get('followUpSettings', null));
+        && validFollowUpSettings(request.resource.data.get('followUpSettings', null))
+        && (request.resource.data.get('notificationClearedAt', null) == null
+          || validTimestamp(request.resource.data.notificationClearedAt));
 
       allow delete: if isOwner(workspaceId)
         && resource.data.ownerUid == request.auth.uid;
@@ -342,18 +344,7 @@ service cloud.firestore {
         allow create: if isOwner(workspaceId)
           && request.resource.data.createdByUid == request.auth.uid
           && validNotificationType(request.resource.data.type)
-          && validText(request.resource.data.title, 150)
-          && validText(request.resource.data.message, 500)
-          && validText(request.resource.data.inquiryId, 150)
-          && request.resource.data.followUpId is string
-          && request.resource.data.followUpId.size() <= 150
-          && validText(request.resource.data.deduplicationKey, 200)
-          && request.resource.data.status == 'delivered'
-          && request.resource.data.deliveryStatus == 'delivered'
-          && request.resource.data.readAt == null
-          && validTimestamp(request.resource.data.scheduledFor)
-          && validTimestamp(request.resource.data.createdAt)
-          && request.resource.data.createdAt == request.time;
+          && request.resource.data.type in ['follow_up_due', 'follow_up_overdue', 'new_inquiry'];
         allow delete: if isOwner(workspaceId);
       }
 

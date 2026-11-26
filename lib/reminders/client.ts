@@ -3,6 +3,7 @@ import {
   doc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -63,6 +64,23 @@ export async function listReminders(uid: string): Promise<ReminderNotification[]
   }
 }
 
+export function subscribeReminders(
+  uid: string,
+  onData: (items: ReminderNotification[]) => void,
+  onError?: (message: string) => void
+): () => void {
+  return onSnapshot(
+    query(
+      collection(firestore(), "workspaces", uid, "notifications"),
+      where("status", "==", "delivered"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    ),
+    (snapshot) => onData(snapshot.docs.map((item) => parse(item as DocumentSnapshot))),
+    () => onError?.("Could not listen for new notifications.")
+  );
+}
+
 export async function markReminderRead(uid: string, id: string): Promise<void> {
   if (!uid) return;
   try {
@@ -120,6 +138,9 @@ export async function deleteAllReminders(uid: string): Promise<number> {
     const batch = writeBatch(firestore());
     snapshot.docs.forEach((item) => {
       batch.delete(item.ref);
+    });
+    batch.update(doc(firestore(), "workspaces", uid), {
+      notificationClearedAt: serverTimestamp(),
     });
     await batch.commit();
     return snapshot.size;

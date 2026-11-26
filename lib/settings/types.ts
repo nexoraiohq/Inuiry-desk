@@ -8,7 +8,7 @@ export type DateFormat = (typeof DATE_FORMATS)[number];
 export const WEEK_STARTS = [0, 1, 6] as const;
 export type WeekStart = (typeof WEEK_STARTS)[number];
 
-export const REPORTING_PERIODS = ["7d", "30d", "90d", "thisMonth"] as const;
+export const REPORTING_PERIODS = ["7d", "30d", "90d", "thisMonth", "all"] as const;
 export type ReportingPeriod = (typeof REPORTING_PERIODS)[number];
 
 export type WorkspaceSource = {

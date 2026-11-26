@@ -27,6 +27,7 @@ const PRESETS: { value: RangePreset; label: string }[] = [
   { value: "30d", label: "Last 30 days" },
   { value: "90d", label: "Last 90 days" },
   { value: "thisMonth", label: "This month" },
+  { value: "all", label: "All time" },
   { value: "previousMonth", label: "Previous month" },
   { value: "custom", label: "Custom range" },
 ];

@@ -103,6 +103,7 @@ export function PreferencesForm({
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
             <option value="thisMonth">This month</option>
+            <option value="all">All time</option>
           </Select>
         </Field>
         <div className="flex justify-end sm:col-span-2">

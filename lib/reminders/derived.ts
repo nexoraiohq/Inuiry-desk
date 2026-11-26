@@ -1,4 +1,4 @@
-import { doc, runTransaction, serverTimestamp, Timestamp, type Firestore } from "firebase/firestore";
+import { doc, getDoc, runTransaction, serverTimestamp, Timestamp, type Firestore } from "firebase/firestore";
 import { firestore } from "@/lib/dashboard/service";
 import { groupFor } from "@/lib/follow-ups/date";
 import { dayKeyInZone } from "@/lib/datetime/zone";
@@ -22,6 +22,9 @@ export async function syncDerivedNotifications(
   inquiries: InquiryRecord[]
 ): Promise<number> {
   const db: Firestore = firestore();
+  const workspaceSnap = await getDoc(doc(db, "workspaces", uid));
+  const cleared = workspaceSnap.data()?.notificationClearedAt;
+  const clearedAt = cleared && typeof cleared.toDate === "function" ? cleared.toDate() : null;
   const now = new Date();
   const today = dayKeyInZone(now);
   const candidates: Candidate[] = [];
@@ -59,6 +62,7 @@ export async function syncDerivedNotifications(
 
   let created = 0;
   for (const candidate of candidates.slice(0, 30)) {
+    if (clearedAt && candidate.scheduledFor.getTime() <= clearedAt.getTime()) continue;
     const ref = doc(db, "workspaces", uid, "notifications", candidate.id);
     const didCreate = await runTransaction(db, async (transaction) => {
       if ((await transaction.get(ref)).exists()) return false;

@@ -13,7 +13,8 @@ export type RangePreset =
   | "90d"
   | "thisMonth"
   | "previousMonth"
-  | "custom";
+  | "custom"
+  | "all";
 
 export type DateRange = {
   key: RangePreset;
@@ -75,6 +76,15 @@ export function resolveDateRange(
     const start = zonedDateTimeToDate(parts.year, parts.month - 1, 1, 0, 0);
     const end = zonedDateTimeToDate(parts.year, parts.month, 1, 0, 0);
     return { key: preset, label: "Previous month", start, end };
+  }
+
+  if (preset === "all") {
+    return {
+      key: preset,
+      label: "All time",
+      start: new Date(0),
+      end: addDays(today, 1),
+    };
   }
 
   const days = preset === "7d" ? 7 : preset === "30d" ? 30 : 90;
