@@ -36,12 +36,13 @@ export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Prop
   const availableSources = editing
     ? configuredSources
     : configuredSources.filter((item) => item.active);
-  const hasCurrentSource = availableSources.some((item) => item.id === source);
+  const defaultSourceId = availableSources.find((item) => item.active)?.id ?? "website";
   const [fullName, setFullName] = useState(inquiry?.fullName ?? "");
   const [phone, setPhone] = useState(inquiry?.phone ?? "");
   const [email, setEmail] = useState(inquiry?.email ?? "");
   const [service, setService] = useState(inquiry?.service ?? "");
-  const [source, setSource] = useState<string>(inquiry?.source ?? "website");
+  const [source, setSource] = useState<string>(inquiry?.source ?? defaultSourceId);
+  const hasCurrentSource = availableSources.some((item) => item.id === source);
   const [priority, setPriority] = useState<InquiryPriority>(inquiry?.priority ?? "normal");
   const [notes, setNotes] = useState(inquiry?.notes ?? "");
   const [errors, setErrors] = useState<FormErrors>({});
