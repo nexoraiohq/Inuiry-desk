@@ -46,6 +46,11 @@ export type InquiryDocument = {
   source: InquirySource;
   status: InquiryStatus;
   priority: InquiryPriority;
+  notes: string | null;
+  pinned: boolean;
+  pinnedAt: Timestamp | null;
+  sortOrder: number;
+  archived: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   lastContactedAt: Timestamp | null;
@@ -75,7 +80,7 @@ export type ActivityDocument = {
   createdByUid: string;
 };
 
-type DateFields = "createdAt" | "updatedAt" | "lastContactedAt" | "nextFollowUpAt";
+type DateFields = "createdAt" | "updatedAt" | "lastContactedAt" | "nextFollowUpAt" | "pinnedAt";
 
 export type InquiryRecord = Omit<InquiryDocument, DateFields> & {
   id: string;
@@ -83,6 +88,7 @@ export type InquiryRecord = Omit<InquiryDocument, DateFields> & {
   updatedAt: Date;
   lastContactedAt: Date | null;
   nextFollowUpAt: Date | null;
+  pinnedAt: Date | null;
 };
 
 type FollowUpDateFields = "dueAt" | "createdAt" | "updatedAt" | "completedAt";

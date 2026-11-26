@@ -12,8 +12,9 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-const inputBase =
+export const inputBase =
   "w-full rounded-xl border border-line bg-canvas px-3.5 text-sm text-ink placeholder:text-subtle " +
+  "dark:border-[#2d3547] dark:bg-[#1b2230] dark:placeholder:text-[#788399] " +
   "transition-colors outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 " +
   "disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted";
 

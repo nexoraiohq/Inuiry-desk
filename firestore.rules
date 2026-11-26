@@ -117,6 +117,13 @@ service cloud.firestore {
           && validSource(request.resource.data.source)
           && validInquiryStatus(request.resource.data.status)
           && validPriority(request.resource.data.priority)
+          && validNullableText(request.resource.data.get('notes', null), 2000)
+          && request.resource.data.get('pinned', false) is bool
+          && (request.resource.data.get('pinnedAt', null) == null || request.resource.data.get('pinnedAt', null) is timestamp)
+          && request.resource.data.get('sortOrder', 0) is number
+          && request.resource.data.get('sortOrder', 0) >= 0
+          && request.resource.data.get('sortOrder', 0) <= 9007199254740991
+          && request.resource.data.get('archived', false) is bool
           && validTimestamp(request.resource.data.createdAt)
           && validTimestamp(request.resource.data.updatedAt)
           && validNullableTimestamp(request.resource.data.lastContactedAt)
@@ -135,6 +142,13 @@ service cloud.firestore {
           && validSource(request.resource.data.source)
           && validInquiryStatus(request.resource.data.status)
           && validPriority(request.resource.data.priority)
+          && validNullableText(request.resource.data.get('notes', null), 2000)
+          && request.resource.data.get('pinned', false) is bool
+          && (request.resource.data.get('pinnedAt', null) == null || request.resource.data.get('pinnedAt', null) is timestamp)
+          && request.resource.data.get('sortOrder', 0) is number
+          && request.resource.data.get('sortOrder', 0) >= 0
+          && request.resource.data.get('sortOrder', 0) <= 9007199254740991
+          && request.resource.data.get('archived', false) is bool
           && validNullableTimestamp(request.resource.data.lastContactedAt)
           && validNullableTimestamp(request.resource.data.nextFollowUpAt);
 

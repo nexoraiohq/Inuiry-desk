@@ -102,13 +102,45 @@ firebase deploy --only firestore:rules,firestore:indexes
 ```
 
 The dashboard uses aggregation count queries plus bounded `limit()` queries —
-it never loads a whole collection to calculate metrics. A new workspace shows
+it never loads a whole collection to calculate metrics. Total counts are exact
+aggregations; new/converted counts come from the bounded active set (up to 200
+most recent inquiries) so no composite index is required. A new workspace shows
 genuine zero counts and real empty states; no seed data is created.
 
-## 8. What Phase 3 does *not* wire up (yet)
+## 8. Phase 4 inquiry management
 
-- Inquiry creation/editing UI, follow-up creation/editing UI — Phase 4.
-- WhatsApp, email, payments, AI features, staff management — later phases.
+`/inquiries` and `/inquiries/[id]` read and write only the authenticated
+workspace. Inquiry creation and status changes use Firestore transactions so
+the related `inquiry_created`, `note_added` and `status_changed` activity
+events are written atomically with the inquiry.
+
+**Query limitation:** Firestore has no full-text search. Search, combined
+filters, sorting and pagination operate on a bounded set of the 200 most recent
+inquiries (`INQUIRY_FETCH_LIMIT`), ordered by `createdAt`. Counts are exact
+server-side aggregations. If a workspace exceeds 200 inquiries, older records
+remain in Firestore but will not appear in the management list until this limit
+is raised or a dedicated search index is introduced.
+
+`firestore.indexes.json` also includes the composite index for an inquiry's
+activity timeline (`inquiryId` + `createdAt`). Activity descriptions never
+include phone numbers, email addresses or note contents.
+
+Inquiries support pinning, manual ordering and soft-delete (archiving):
+
+- `pinned` / `pinnedAt` — pinned inquiries always sort above others.
+- `sortOrder` — used by the "Manual order" sort; drag rows or use the arrows.
+- `archived` — archived inquiries are hidden from the active list and counts.
+  Archiving preserves the document, follow-ups and activity history; it is not
+  a destructive delete. "Show archived" restores access and offers Restore.
+
+Pinned inquiries always sort first. The queries use single-field indexes only;
+the `archived + ...` composite indexes in `firestore.indexes.json` are optional
+optimizations and are not required for the dashboard or list to work.
+
+## 9. What Phase 4 does *not* wire up (yet)
+
+- Follow-up scheduling/management UI — Phase 5.
+- WhatsApp API, email automation, payments, AI features, staff management — later phases.
 - Admin SDK / server-side session verification — later phases. Firestore rules
   remain the server-side security boundary.
 - Third-party auth providers — later phases.

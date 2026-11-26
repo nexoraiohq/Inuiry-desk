@@ -121,6 +121,18 @@
     display: none;
   }
 
+  /* Modal/panel scrolling stays functional without a visible bar. */
+  .quiet-scroll {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .quiet-scroll::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
   ::selection {
     background-color: var(--color-brand-soft);
     color: var(--color-ink);

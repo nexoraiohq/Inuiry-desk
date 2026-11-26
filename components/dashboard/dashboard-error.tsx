@@ -7,9 +7,11 @@ import { buttonClasses } from "@/components/ui/button";
 export function DashboardError({
   message,
   onRetry,
+  title = "We couldn't load your overview",
 }: {
   message: string;
   onRetry: () => void;
+  title?: string;
 }) {
   return (
     <Card className="bg-canvas/80 p-5 shadow-card sm:p-8" role="alert">
@@ -19,7 +21,7 @@ export function DashboardError({
         </span>
         <div>
           <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
-            We couldn&apos;t load your overview
+            {title}
           </h2>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">{message}</p>
         </div>

@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/dashboard/format";
 import type { ActivityRecord, ActivityType } from "@/lib/dashboard/types";
 
-const activityIcons: Record<ActivityType, LucideIcon> = {
+export const activityIcons: Record<ActivityType, LucideIcon> = {
   inquiry_created: MessageSquare,
   status_changed: ActivityIcon,
   follow_up_created: CalendarClock,
@@ -20,7 +20,7 @@ const activityIcons: Record<ActivityType, LucideIcon> = {
   note_added: StickyNote,
 };
 
-const activityTones: Record<ActivityType, string> = {
+export const activityTones: Record<ActivityType, string> = {
   inquiry_created: "bg-brand-soft text-brand",
   status_changed: "bg-surface text-muted",
   follow_up_created: "bg-brand-soft text-brand",

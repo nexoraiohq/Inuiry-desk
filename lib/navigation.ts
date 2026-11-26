@@ -60,7 +60,11 @@ export const NAV_ITEMS: NavItem[] = [
 
 /** Falls back to the Overview entry for unknown paths. */
 export function getNavItem(pathname: string): NavItem {
-  return NAV_ITEMS.find((item) => item.href === pathname) ?? NAV_ITEMS[0];
+  return (
+    NAV_ITEMS.find((item) => pathname === item.href) ??
+    NAV_ITEMS.find((item) => pathname.startsWith(`${item.href}/`)) ??
+    NAV_ITEMS[0]
+  );
 }
 
 /**

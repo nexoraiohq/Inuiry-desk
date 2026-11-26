@@ -7,8 +7,8 @@ import {
   query,
   Timestamp,
   where,
+  type DocumentSnapshot,
   type Firestore,
-  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -41,7 +41,7 @@ export class DashboardServiceError extends Error {
   }
 }
 
-function firestore(): Firestore {
+export function firestore(): Firestore {
   if (!db) {
     throw new DashboardServiceError(
       "Firestore is not configured for this project.",
@@ -58,7 +58,7 @@ function errorCode(error: unknown): string {
   return "";
 }
 
-function toServiceError(error: unknown): DashboardServiceError {
+export function toServiceError(error: unknown): DashboardServiceError {
   if (error instanceof DashboardServiceError) return error;
   console.error("[dashboard] load failed", error);
   const code = errorCode(error);
@@ -87,7 +87,7 @@ function readNullableString(
   field: string
 ): string | null {
   const value = data[field];
-  if (value === null) return null;
+  if (value == null) return null;
   if (typeof value !== "string") {
     throw new DashboardServiceError(`A record has an invalid ${field}.`);
   }
@@ -110,6 +110,16 @@ function readTime(
   return value.toDate();
 }
 
+function readBoolean(data: Record<string, unknown>, field: string, fallback = false): boolean {
+  const value = data[field];
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readNumber(data: Record<string, unknown>, field: string, fallback = 0): number {
+  const value = data[field];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 function readEnum<T extends string>(
   data: Record<string, unknown>,
   field: string,
@@ -120,7 +130,7 @@ function readEnum<T extends string>(
   throw new DashboardServiceError(`A record has an invalid ${field}.`);
 }
 
-function parseInquiry(snapshot: QueryDocumentSnapshot): InquiryRecord {
+export function parseInquiry(snapshot: DocumentSnapshot): InquiryRecord {
   const data = snapshot.data() as Record<string, unknown>;
   const record: InquiryDocument = {
     fullName: readString(data, "fullName"),
@@ -130,6 +140,11 @@ function parseInquiry(snapshot: QueryDocumentSnapshot): InquiryRecord {
     source: readEnum<InquirySource>(data, "source", INQUIRY_SOURCES),
     status: readEnum<InquiryStatus>(data, "status", INQUIRY_STATUSES),
     priority: readEnum<InquiryPriority>(data, "priority", INQUIRY_PRIORITIES),
+    notes: readNullableString(data, "notes"),
+    pinned: readBoolean(data, "pinned"),
+    pinnedAt: data.pinnedAt as Timestamp | null,
+    sortOrder: readNumber(data, "sortOrder"),
+    archived: readBoolean(data, "archived"),
     createdAt: data.createdAt as Timestamp,
     updatedAt: data.updatedAt as Timestamp,
     lastContactedAt: data.lastContactedAt as Timestamp | null,
@@ -146,6 +161,11 @@ function parseInquiry(snapshot: QueryDocumentSnapshot): InquiryRecord {
     source: record.source,
     status: record.status,
     priority: record.priority,
+    notes: record.notes,
+    pinned: record.pinned,
+    pinnedAt: readTime(data, "pinnedAt", true),
+    sortOrder: record.sortOrder,
+    archived: record.archived,
     createdByUid: record.createdByUid,
     createdAt: readTime(data, "createdAt") as Date,
     updatedAt: readTime(data, "updatedAt") as Date,
@@ -154,7 +174,7 @@ function parseInquiry(snapshot: QueryDocumentSnapshot): InquiryRecord {
   };
 }
 
-function parseFollowUp(snapshot: QueryDocumentSnapshot): FollowUpRecord {
+export function parseFollowUp(snapshot: DocumentSnapshot): FollowUpRecord {
   const data = snapshot.data() as Record<string, unknown>;
   const record: FollowUpDocument = {
     inquiryId: readString(data, "inquiryId"),
@@ -182,7 +202,7 @@ function parseFollowUp(snapshot: QueryDocumentSnapshot): FollowUpRecord {
   };
 }
 
-function parseActivity(snapshot: QueryDocumentSnapshot): ActivityRecord {
+export function parseActivity(snapshot: DocumentSnapshot): ActivityRecord {
   const data = snapshot.data() as Record<string, unknown>;
   const record: ActivityDocument = {
     type: readEnum<ActivityType>(data, "type", ACTIVITY_TYPES),
@@ -222,51 +242,73 @@ export async function getDashboardData(uid: string): Promise<DashboardData> {
     const followUpsRef = collection(database, "workspaces", uid, "followUps");
     const activitiesRef = collection(database, "workspaces", uid, "activities");
 
-    const [
-      totalSnapshot,
-      newSnapshot,
-      convertedSnapshot,
-      dueSnapshot,
-      latestInquiries,
-      nextFollowUps,
-      latestActivities,
-    ] = await Promise.all([
-      getCountFromServer(query(inquiriesRef)),
-      getCountFromServer(query(inquiriesRef, where("status", "==", "new"))),
-      getCountFromServer(
-        query(inquiriesRef, where("status", "==", "converted"))
-      ),
-      getCountFromServer(
-        query(
-          followUpsRef,
-          where("status", "==", "pending"),
-          where("dueAt", "<=", now)
-        )
-      ),
-      getDocs(query(inquiriesRef, orderBy("createdAt", "desc"), limit(5))),
-      getDocs(
-        query(
-          followUpsRef,
-          where("status", "==", "pending"),
-          orderBy("dueAt", "asc"),
-          limit(5)
-        )
-      ),
-      getDocs(query(activitiesRef, orderBy("createdAt", "desc"), limit(8))),
-    ]);
+    // Inquiries use single-field queries only; a bounded active set is sorted
+    // locally so no composite index is required just to show the dashboard.
+    const activeInquiries = await getDocs(
+      query(inquiriesRef, orderBy("createdAt", "desc"), limit(200))
+    );
+    const inquiries = activeInquiries.docs
+      .map(parseInquiry)
+      .filter((item) => !item.archived);
+
+    const [totalSnapshot, dueSnapshot, nextFollowUps, latestActivities] =
+      await Promise.all([
+        getCountFromServer(query(inquiriesRef, where("archived", "==", false))),
+        getCountFromServer(
+          query(
+            followUpsRef,
+            where("status", "==", "pending"),
+            where("dueAt", "<=", now)
+          )
+        ),
+        getDocs(
+          query(
+            followUpsRef,
+            where("status", "==", "pending"),
+            orderBy("dueAt", "asc"),
+            limit(5)
+          )
+        ),
+        getDocs(query(activitiesRef, orderBy("createdAt", "desc"), limit(8))),
+      ]);
 
     return {
       metrics: {
         totalInquiries: totalSnapshot.data().count,
-        newInquiries: newSnapshot.data().count,
-        convertedInquiries: convertedSnapshot.data().count,
+        newInquiries: inquiries.filter((item) => item.status === "new").length,
+        convertedInquiries: inquiries.filter(
+          (item) => item.status === "converted"
+        ).length,
         followUpsDue: dueSnapshot.data().count,
       },
-      recentInquiries: latestInquiries.docs.map(parseInquiry),
+      recentInquiries: inquiries.slice(0, 5),
       upcomingFollowUps: nextFollowUps.docs.map(parseFollowUp),
       recentActivities: latestActivities.docs.map(parseActivity),
       generatedAt: new Date(),
     };
+  } catch (error) {
+    throw toServiceError(error);
+  }
+}
+
+/** Exact counts for the inquiries page, using server-side aggregation. */
+export async function getInquiryCounts(
+  uid: string
+): Promise<{ total: number; newCount: number }> {
+  if (!uid) {
+    throw new DashboardServiceError("Sign in to view your inquiries.", "dashboard/unauthenticated");
+  }
+  const inquiriesRef = collection(firestore(), "workspaces", uid, "inquiries");
+  try {
+    const [total, active] = await Promise.all([
+      getCountFromServer(query(inquiriesRef, where("archived", "==", false))),
+      getDocs(query(inquiriesRef, where("archived", "==", false), limit(200))),
+    ]);
+    // New count comes from the bounded active set; no composite index needed.
+    const newCount = active.docs.filter(
+      (snapshot) => snapshot.data().status === "new"
+    ).length;
+    return { total: total.data().count, newCount };
   } catch (error) {
     throw toServiceError(error);
   }
