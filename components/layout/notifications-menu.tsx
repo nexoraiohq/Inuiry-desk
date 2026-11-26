@@ -2,26 +2,43 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, CalendarClock, Inbox, MessageSquare } from "lucide-react";
+import {
+  Bell,
+  CalendarClock,
+  Check,
+  CheckCheck,
+  Inbox,
+  MessageSquare,
+  Trash2,
+} from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { Notice } from "@/components/ui/notice";
 import { formatDateTime } from "@/lib/dashboard/format";
 import { groupFor } from "@/lib/follow-ups/date";
 import { listFollowUps } from "@/lib/follow-ups/service";
 import { listInquiries } from "@/lib/inquiries/service";
-import { listReminders, markReminderRead } from "@/lib/reminders/client";
+import {
+  deleteAllReminders,
+  deleteReminder,
+  listReminders,
+  markAllRemindersRead,
+  markReminderRead,
+} from "@/lib/reminders/client";
 import type { ReminderNotification } from "@/lib/reminders/types";
 
 type Summary = { overdue: number; today: number; newInquiries: number };
-
 const EMPTY: Summary = { overdue: 0, today: 0, newInquiries: 0 };
 
-/** Live, read-only workspace alerts derived from real records. */
+/** Live workspace alerts plus persisted reminder notifications. */
 export function NotificationsMenu() {
   const { user, status } = useAuth();
   const [summary, setSummary] = useState<Summary>(EMPTY);
   const [reminders, setReminders] = useState<ReminderNotification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -35,19 +52,13 @@ export function NotificationsMenu() {
       ]);
       const now = new Date();
       setSummary({
-        overdue: followUps.filter(
-          (item) => groupFor(item.status, item.dueAt, now) === "overdue"
-        ).length,
-        today: followUps.filter(
-          (item) => groupFor(item.status, item.dueAt, now) === "today"
-        ).length,
-        newInquiries: inquiries.filter(
-          (item) => !item.archived && item.status === "new"
-        ).length,
+        overdue: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "overdue").length,
+        today: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "today").length,
+        newInquiries: inquiries.filter((item) => !item.archived && item.status === "new").length,
       });
-      setReminders(reminders.filter((item) => item.readAt === null));
-    } catch {
-      // Notifications are advisory; a failed refresh must not break the header.
+      setReminders(reminders);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not refresh notifications.");
     } finally {
       setLoading(false);
     }
@@ -75,25 +86,34 @@ export function NotificationsMenu() {
     };
   }, [open]);
 
-  if (status !== "ready") return null;
+  const unread = reminders.filter((item) => item.readAt === null);
+  const total = summary.newInquiries + unread.length;
+  const showDerivedFollowUps = unread.length === 0;
 
-  const total = summary.newInquiries + reminders.length;
-  const showDerivedFollowUps = reminders.length === 0;
-
-  async function openReminder(id: string) {
-    setReminders((current) => current.filter((item) => item.id !== id));
-    setOpen(false);
-    if (user) {
-      try { await markReminderRead(user.uid, id); } catch { /* advisory only */ }
+  async function run(action: () => Promise<unknown>, message: string) {
+    if (!user) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await action();
+      await load();
+      setNotice(message);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Notification update failed.");
+    } finally {
+      setBusy(false);
     }
   }
+
+  if (status !== "ready") return null;
 
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => { setOpen((value) => !value); void load(); }}
-        aria-label={`Notifications${total ? `, ${total} items` : ""}`}
+        aria-label={`Notifications${total ? `, ${total} unread` : ""}`}
         aria-expanded={open}
         aria-haspopup="menu"
         className="relative grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-ink"
@@ -107,16 +127,82 @@ export function NotificationsMenu() {
       </button>
 
       {open ? (
-        <div role="menu" className="absolute right-0 top-11 z-50 w-72 rounded-xl border border-line bg-canvas p-3 shadow-raised">
+        <div role="menu" className="absolute right-0 top-11 z-50 w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-canvas p-3 shadow-raised">
           <div className="flex items-center justify-between gap-2">
             <p className="font-display text-[13px] font-semibold text-ink">Notifications</p>
-            <span className="text-[11px] text-subtle">{loading ? "Updating…" : `${total} items`}</span>
+            <span className="text-[11px] text-subtle">{loading ? "Updating…" : `${unread.length} unread`}</span>
+          </div>
+
+          {error ? <div className="mt-2"><Notice tone="danger" message={error} onDismiss={() => setError(null)} /></div> : null}
+          {notice ? <div className="mt-2"><Notice tone="success" message={notice} onDismiss={() => setNotice(null)} /></div> : null}
+
+          <div className="mt-3 flex flex-wrap gap-2 border-b border-line pb-3">
+            <button
+              type="button"
+              disabled={busy || unread.length === 0}
+              onClick={() => void run(() => markAllRemindersRead(user!.uid), "All reminders marked as read.")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-40"
+            >
+              <CheckCheck className="size-3.5" aria-hidden="true" /> Mark all read
+            </button>
+            <button
+              type="button"
+              disabled={busy || reminders.length === 0}
+              onClick={() => void run(() => deleteAllReminders(user!.uid), "All reminders deleted.")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-danger/25 px-2.5 py-1.5 text-[11px] font-medium text-danger transition-colors hover:bg-danger-soft disabled:opacity-40"
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" /> Delete all
+            </button>
           </div>
 
           {total === 0 ? (
             <p className="mt-4 text-[12px] text-muted">Nothing needs attention right now.</p>
           ) : (
-            <div className="mt-3 space-y-1.5">
+            <div className="mt-3 max-h-[60vh] space-y-1.5 overflow-y-auto">
+              {reminders.map((item) => (
+                <div key={item.id} className="rounded-lg px-2 py-2 transition-colors hover:bg-surface/60">
+                  <div className="flex items-start gap-2.5">
+                    <MessageSquare className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {item.readAt === null ? <span className="size-1.5 shrink-0 rounded-full bg-brand" aria-label="Unread" /> : null}
+                        <Link href={`/follow-ups/${item.followUpId}`} onClick={() => setOpen(false)} className="truncate text-[12px] font-medium text-ink hover:text-brand">
+                          {item.title}
+                        </Link>
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-muted">{item.message}</p>
+                      <time dateTime={item.scheduledFor.toISOString()} className="mt-1 block text-[10px] text-subtle">
+                        {formatDateTime(item.scheduledFor)}
+                      </time>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      {item.readAt === null ? (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void run(() => markReminderRead(user!.uid, item.id), "Reminder marked as read.")}
+                          aria-label={`Mark ${item.title} as read`}
+                          title="Mark as read"
+                          className="grid size-7 place-items-center rounded-lg text-muted transition-colors hover:bg-brand-soft hover:text-brand disabled:opacity-40"
+                        >
+                          <Check className="size-3.5" aria-hidden="true" />
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void run(() => deleteReminder(user!.uid, item.id), "Reminder deleted.")}
+                        aria-label={`Delete ${item.title}`}
+                        title="Delete"
+                        className="grid size-7 place-items-center rounded-lg text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-40"
+                      >
+                        <Trash2 className="size-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
               {showDerivedFollowUps && summary.overdue > 0 ? (
                 <Link href="/follow-ups" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
                   <CalendarClock className="size-4 shrink-0 text-danger" aria-hidden="true" />
@@ -131,24 +217,6 @@ export function NotificationsMenu() {
                   <span className="text-[11px] text-subtle">View</span>
                 </Link>
               ) : null}
-              {reminders.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/follow-ups/${item.followUpId}`}
-                  onClick={() => void openReminder(item.id)}
-                  role="menuitem"
-                  className="flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface"
-                >
-                  <MessageSquare className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] font-medium text-ink">{item.title}</span>
-                    <span className="block truncate text-[11px] text-muted">{item.message}</span>
-                    <time dateTime={item.scheduledFor.toISOString()} className="mt-0.5 block text-[10px] text-subtle">
-                      {formatDateTime(item.scheduledFor)}
-                    </time>
-                  </span>
-                </Link>
-              ))}
               {summary.newInquiries > 0 ? (
                 <Link href="/inquiries" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
                   <Inbox className="size-4 shrink-0 text-brand" aria-hidden="true" />

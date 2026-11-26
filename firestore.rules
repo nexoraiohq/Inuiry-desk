@@ -335,7 +335,8 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
           && request.resource.data.readAt == request.time;
 
-        allow create, delete: if false;
+        allow delete: if isOwner(workspaceId);
+        allow create: if false;
       }
 
       // ---- Reminder execution jobs (scheduler-owned) -------------------
