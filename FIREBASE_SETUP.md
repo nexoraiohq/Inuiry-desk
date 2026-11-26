@@ -159,10 +159,28 @@ email or note contents.
 The dashboard's "Follow-ups due" metric counts pending follow-ups with
 `dueAt <= now`; the "Upcoming follow-ups" list shows only future pending items.
 
-## 10. What Phase 5 does *not* wire up (yet)
+## 10. Phase 6 communication history
 
-- WhatsApp API messaging, SMS, email automation, push notifications — later phases.
-- AI recommendations, payments, staff management, advanced reporting — later phases.
+`workspaces/{uid}/communications/{communicationId}` stores manually logged
+interactions. Each record has an inquiryId, channel, direction, channel-scoped
+outcome, summary, local-entered `occurredAt`, timestamps, creator UID and an
+optional linked follow-up.
+
+Only outcomes explicitly supported by the chosen channel are accepted. The app
+never claims an external message or call was sent or received — the user records
+the outcome after completing the interaction through `tel:`, `wa.me` or
+`mailto:`. Logging writes a `communication_logged` activity event and updates
+the inquiry's `lastContactedAt` atomically.
+
+Editing preserves the original inquiry association, `createdAt` and
+`createdByUid`. Communication history is append-only for deletion (no client
+delete is allowed) to preserve the audit trail.
+
+## 11. What Phase 6 does *not* wire up (yet)
+
+- WhatsApp Business API, automatic WhatsApp/SMS sending, email infrastructure,
+  email tracking, push notifications — later phases.
+- AI communication suggestions, payments, staff management, advanced reporting — later phases.
 - Admin SDK / server-side session verification — later phases. Firestore rules
   remain the server-side security boundary.
 - Third-party auth providers — later phases.

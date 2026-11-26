@@ -13,6 +13,7 @@ import {
   Phone,
 } from "lucide-react";
 import { activityIcons, activityTones } from "@/components/dashboard/recent-activity";
+import { CommunicationHistory } from "@/components/communications/communication-history";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import {
   FollowUpGroupBadge,
@@ -168,6 +169,11 @@ export function InquiryDetailView({
               <ExternalLink className="size-3.5" aria-hidden="true" />
             </a>
           ) : null}
+          {inquiry.email ? (
+            <a href={`mailto:${inquiry.email}`} className={buttonClasses("secondary", "md", "h-9")} title="Opens your email app — nothing is sent automatically">
+              <Mail className="size-4" aria-hidden="true" /> Email
+            </a>
+          ) : null}
           <button
             type="button"
             onClick={() => setEditOpen(true)}
@@ -296,6 +302,14 @@ export function InquiryDetailView({
           </div>
         )}
       </Card>
+
+      <CommunicationHistory
+        uid={uid}
+        inquiryId={inquiry.id}
+        inquiryLabel={inquiry.fullName}
+        followUps={followUps}
+        onChanged={refresh}
+      />
 
       <Card className="overflow-hidden bg-canvas/80 shadow-card">
         <div className="border-b border-line px-5 py-4">

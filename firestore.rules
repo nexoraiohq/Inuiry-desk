@@ -57,7 +57,24 @@ service cloud.firestore {
     }
 
     function validActivityType(value) {
-      return value in ['inquiry_created', 'status_changed', 'follow_up_created', 'follow_up_completed', 'follow_up_rescheduled', 'follow_up_cancelled', 'follow_up_deleted', 'note_added'];
+      return value in ['inquiry_created', 'status_changed', 'communication_logged', 'follow_up_created', 'follow_up_completed', 'follow_up_rescheduled', 'follow_up_cancelled', 'follow_up_deleted', 'note_added'];
+    }
+
+    function validCommunicationChannel(value) {
+      return value in ['phone', 'whatsapp', 'email', 'sms', 'in_person', 'other'];
+    }
+
+    function validCommunicationDirection(value) {
+      return value in ['incoming', 'outgoing'];
+    }
+
+    function validCommunicationOutcome(value, channel) {
+      return (channel == 'phone' && value in ['connected', 'no_answer', 'voicemail'])
+        || (channel == 'whatsapp' && value in ['message_sent', 'customer_replied', 'no_response'])
+        || (channel == 'email' && value in ['email_sent', 'customer_replied', 'no_response'])
+        || (channel == 'sms' && value in ['message_sent', 'customer_replied', 'no_response'])
+        || (channel == 'in_person' && value in ['meeting_completed', 'meeting_missed'])
+        || (channel == 'other' && value in ['completed', 'no_response', 'other']);
     }
 
     function hasTimestamps(create) {
@@ -203,6 +220,40 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time;
 
         allow update, delete: if false;
+      }
+
+      // ---- Communications (manually logged interactions) ---------------
+      match /communications/{communicationId} {
+        allow read: if isOwner(workspaceId);
+
+        allow create: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == request.auth.uid
+          && validText(request.resource.data.inquiryId, 150)
+          && validCommunicationChannel(request.resource.data.channel)
+          && validCommunicationDirection(request.resource.data.direction)
+          && validCommunicationOutcome(request.resource.data.outcome, request.resource.data.channel)
+          && validText(request.resource.data.summary, 2000)
+          && validTimestamp(request.resource.data.occurredAt)
+          && validTimestamp(request.resource.data.createdAt)
+          && validTimestamp(request.resource.data.updatedAt)
+          && validNullableText(request.resource.data.followUpId, 150)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == resource.data.createdByUid
+          && request.resource.data.inquiryId == resource.data.inquiryId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time
+          && validCommunicationChannel(request.resource.data.channel)
+          && validCommunicationDirection(request.resource.data.direction)
+          && validCommunicationOutcome(request.resource.data.outcome, request.resource.data.channel)
+          && validText(request.resource.data.summary, 2000)
+          && validTimestamp(request.resource.data.occurredAt)
+          && validNullableText(request.resource.data.followUpId, 150);
+
+        // Communication history is retained, not silently deleted.
+        allow delete: if false;
       }
 
       // Any other nested collection is denied.

@@ -31,6 +31,7 @@ export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number];
 export const ACTIVITY_TYPES = [
   "inquiry_created",
   "status_changed",
+  "communication_logged",
   "follow_up_created",
   "follow_up_completed",
   "follow_up_rescheduled",
@@ -59,6 +60,55 @@ export type InquiryDocument = {
   lastContactedAt: Timestamp | null;
   nextFollowUpAt: Timestamp | null;
   createdByUid: string;
+};
+
+export const COMMUNICATION_CHANNELS = [
+  "phone",
+  "whatsapp",
+  "email",
+  "sms",
+  "in_person",
+  "other",
+] as const;
+export type CommunicationChannel = (typeof COMMUNICATION_CHANNELS)[number];
+
+export const COMMUNICATION_DIRECTIONS = ["incoming", "outgoing"] as const;
+export type CommunicationDirection = (typeof COMMUNICATION_DIRECTIONS)[number];
+
+/** Supported outcomes are strictly scoped to their channel. */
+export const COMMUNICATION_OUTCOMES = {
+  phone: ["connected", "no_answer", "voicemail"],
+  whatsapp: ["message_sent", "customer_replied", "no_response"],
+  email: ["email_sent", "customer_replied", "no_response"],
+  sms: ["message_sent", "customer_replied", "no_response"],
+  in_person: ["meeting_completed", "meeting_missed"],
+  other: ["completed", "no_response", "other"],
+} as const satisfies Record<CommunicationChannel, readonly string[]>;
+
+export type CommunicationOutcome =
+  (typeof COMMUNICATION_OUTCOMES)[CommunicationChannel][number];
+
+export type CommunicationDocument = {
+  inquiryId: string;
+  channel: CommunicationChannel;
+  direction: CommunicationDirection;
+  outcome: CommunicationOutcome;
+  summary: string;
+  occurredAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdByUid: string;
+  followUpId: string | null;
+};
+
+export type CommunicationRecord = Omit<
+  CommunicationDocument,
+  "occurredAt" | "createdAt" | "updatedAt"
+> & {
+  id: string;
+  occurredAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 /** Raw stored shape in `workspaces/{uid}/followUps/{followUpId}`. */
@@ -131,4 +181,5 @@ export const workspaceCollections = (uid: string) => ({
   inquiries: `workspaces/${uid}/inquiries`,
   followUps: `workspaces/${uid}/followUps`,
   activities: `workspaces/${uid}/activities`,
+  communications: `workspaces/${uid}/communications`,
 } as const);

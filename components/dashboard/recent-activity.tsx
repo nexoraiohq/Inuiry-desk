@@ -4,6 +4,7 @@ import {
   CalendarX2,
   CheckCircle2,
   MessageSquare,
+  Phone,
   RotateCcw,
   StickyNote,
   Trash2,
@@ -18,6 +19,7 @@ import type { ActivityRecord, ActivityType } from "@/lib/dashboard/types";
 export const activityIcons: Record<ActivityType, LucideIcon> = {
   inquiry_created: MessageSquare,
   status_changed: ActivityIcon,
+  communication_logged: Phone,
   follow_up_created: CalendarClock,
   follow_up_completed: CheckCircle2,
   follow_up_rescheduled: RotateCcw,
@@ -29,6 +31,7 @@ export const activityIcons: Record<ActivityType, LucideIcon> = {
 export const activityTones: Record<ActivityType, string> = {
   inquiry_created: "bg-brand-soft text-brand",
   status_changed: "bg-surface text-muted",
+  communication_logged: "bg-brand-soft text-brand",
   follow_up_created: "bg-brand-soft text-brand",
   follow_up_completed: "bg-success-soft text-success",
   follow_up_rescheduled: "bg-brand-soft text-brand",
