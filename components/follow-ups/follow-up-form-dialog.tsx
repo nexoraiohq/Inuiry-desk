@@ -11,6 +11,7 @@ import { INQUIRY_PRIORITIES, type InquiryPriority, type InquiryRecord } from "@/
 import { humanize } from "@/lib/dashboard/format";
 import { combineLocalDateTime, defaultDueDateTime } from "@/lib/follow-ups/date";
 import { createFollowUp, updateFollowUp } from "@/lib/follow-ups/service";
+import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import type { FollowUpRecord } from "@/lib/dashboard/types";
 
 type Props = {
@@ -32,7 +33,11 @@ export function FollowUpFormDialog({
   followUp,
   fixedInquiryId,
 }: Props) {
-  const defaults = defaultDueDateTime();
+  const { settings } = useWorkspaceSettings();
+  const defaults = defaultDueDateTime(
+    settings?.followUpSettings.defaultIntervalDays ?? 1,
+    settings?.followUpSettings.defaultTime ?? "10:00"
+  );
   const [inquiryId, setInquiryId] = useState(followUp?.inquiryId ?? fixedInquiryId ?? "");
   const [title, setTitle] = useState(followUp?.title ?? "");
   const [description, setDescription] = useState(followUp?.description ?? "");

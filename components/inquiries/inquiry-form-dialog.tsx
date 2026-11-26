@@ -9,7 +9,6 @@ import { buttonClasses } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import {
   INQUIRY_PRIORITIES,
-  INQUIRY_SOURCES,
   type InquiryPriority,
   type InquiryRecord,
   type InquirySource,
@@ -17,6 +16,7 @@ import {
 import { humanize } from "@/lib/dashboard/format";
 import { isValidOptionalEmail, isValidPhone, normalizePhone } from "@/lib/inquiries/phone";
 import { createInquiry, updateInquiry } from "@/lib/inquiries/service";
+import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 
 type FormErrors = Partial<Record<"fullName" | "phone" | "email" | "service" | "notes", string>>;
 
@@ -30,12 +30,18 @@ type Props = {
 
 /** Create/edit form. Parent keys this component per inquiry to reset state. */
 export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Props) {
+  const { settings } = useWorkspaceSettings();
   const editing = Boolean(inquiry);
+  const configuredSources = settings?.inquirySettings.sources ?? [];
+  const availableSources = editing
+    ? configuredSources
+    : configuredSources.filter((item) => item.active);
+  const hasCurrentSource = availableSources.some((item) => item.id === source);
   const [fullName, setFullName] = useState(inquiry?.fullName ?? "");
   const [phone, setPhone] = useState(inquiry?.phone ?? "");
   const [email, setEmail] = useState(inquiry?.email ?? "");
   const [service, setService] = useState(inquiry?.service ?? "");
-  const [source, setSource] = useState<InquirySource>(inquiry?.source ?? "website");
+  const [source, setSource] = useState<string>(inquiry?.source ?? "website");
   const [priority, setPriority] = useState<InquiryPriority>(inquiry?.priority ?? "normal");
   const [notes, setNotes] = useState(inquiry?.notes ?? "");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -75,7 +81,7 @@ export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Prop
         phone: normalizePhone(phone),
         email: email.trim(),
         service: service.trim(),
-        source,
+        source: source as InquirySource,
         priority,
       };
       if (editing && inquiry) {
@@ -126,9 +132,10 @@ export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Prop
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Source">
-            <Select value={source} onChange={(e) => setSource(e.target.value as InquirySource)} disabled={busy}>
-              {INQUIRY_SOURCES.map((option) => (
-                <option key={option} value={option}>{humanize(option)}</option>
+            <Select value={source} onChange={(e) => setSource(e.target.value)} disabled={busy}>
+              {!hasCurrentSource ? <option value={source}>{humanize(source)} (inactive)</option> : null}
+              {availableSources.map((option) => (
+                <option key={option.id} value={option.id}>{option.label}{option.active ? "" : " (inactive)"}</option>
               ))}
             </Select>
           </Field>

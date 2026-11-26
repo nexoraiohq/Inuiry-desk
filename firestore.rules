@@ -40,8 +40,10 @@ service cloud.firestore {
       return value == null || value is timestamp;
     }
 
-    function validSource(value) {
-      return value in ['whatsapp', 'website', 'phone', 'instagram', 'facebook', 'walk_in', 'referral', 'other'];
+    function workspaceSourceIds(workspaceId, fieldName) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)).data
+        .get('inquirySettings', {})
+        .get(fieldName, ['whatsapp', 'website', 'phone', 'instagram', 'facebook', 'walk_in', 'referral', 'other']);
     }
 
     function validInquiryStatus(value) {
@@ -83,6 +85,49 @@ service cloud.firestore {
         : request.resource.data.updatedAt == request.time;
     }
 
+    function validSettingsText(value, maxLength) {
+      return value == null || (value is string && value.size() <= maxLength);
+    }
+
+    function validProfile(value) {
+      return value == null || (value is map
+        && validSettingsText(value.get('description', null), 2000)
+        && validSettingsText(value.get('industry', null), 100)
+        && validSettingsText(value.get('email', null), 254)
+        && validSettingsText(value.get('phone', null), 50)
+        && validSettingsText(value.get('website', null), 300)
+        && validSettingsText(value.get('country', null), 100)
+        && validSettingsText(value.get('city', null), 100)
+        && validSettingsText(value.get('logoUrl', null), 500));
+    }
+
+    function validPreferences(value) {
+      return value == null || (value is map
+        && validSettingsText(value.get('timezone', null), 64)
+        && value.get('dateFormat', 'MMM d, yyyy') in ['MMM d, yyyy', 'dd/MM/yyyy', 'yyyy-MM-dd', 'MM/dd/yyyy']
+        && value.get('weekStartsOn', 1) in [0, 1, 6]
+        && value.get('defaultReportingPeriod', '30d') in ['7d', '30d', '90d', 'thisMonth']);
+    }
+
+    function validInquirySettings(value) {
+      return value == null || (value is map
+        && value.get('sources', []) is list
+        && value.get('sources', []).size() <= 50
+        && value.get('sourceIds', []) is list
+        && value.get('activeSourceIds', []) is list);
+    }
+
+    function validFollowUpSettings(value) {
+      return value == null || (value is map
+        && value.get('defaultIntervalDays', 3) is number
+        && value.get('defaultIntervalDays', 3) >= 1
+        && value.get('defaultIntervalDays', 3) <= 90
+        && value.get('workingDays', []) is list
+        && value.get('startTime', '09:00') is string
+        && value.get('endTime', '17:00') is string
+        && value.get('defaultTime', '10:00') is string);
+    }
+
     // ---- User profiles -------------------------------------------------
     match /users/{userId} {
       allow read: if isOwner(userId);
@@ -98,7 +143,8 @@ service cloud.firestore {
         && validText(request.resource.data.displayName, 100)
         && request.resource.data.email == resource.data.email
         && request.resource.data.workspaceId == resource.data.workspaceId
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'workspaceId', 'createdAt']);
 
       allow delete: if isOwner(userId);
     }
@@ -116,7 +162,12 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.ownerUid == request.auth.uid
         && validText(request.resource.data.businessName, 150)
-        && hasTimestamps(false);
+        && hasTimestamps(false)
+        && request.resource.data.keys().hasOnly(['businessName', 'ownerUid', 'createdAt', 'updatedAt', 'profile', 'preferences', 'inquirySettings', 'followUpSettings'])
+        && validProfile(request.resource.data.get('profile', null))
+        && validPreferences(request.resource.data.get('preferences', null))
+        && validInquirySettings(request.resource.data.get('inquirySettings', null))
+        && validFollowUpSettings(request.resource.data.get('followUpSettings', null));
 
       allow delete: if isOwner(workspaceId)
         && resource.data.ownerUid == request.auth.uid;
@@ -131,7 +182,7 @@ service cloud.firestore {
           && validText(request.resource.data.phone, 50)
           && validNullableText(request.resource.data.email, 254)
           && validText(request.resource.data['service'], 150)
-          && validSource(request.resource.data.source)
+          && request.resource.data.source in workspaceSourceIds(workspaceId, 'activeSourceIds')
           && validInquiryStatus(request.resource.data.status)
           && validPriority(request.resource.data.priority)
           && validNullableText(request.resource.data.get('notes', null), 2000)
@@ -156,7 +207,7 @@ service cloud.firestore {
           && validText(request.resource.data.phone, 50)
           && validNullableText(request.resource.data.email, 254)
           && validText(request.resource.data['service'], 150)
-          && validSource(request.resource.data.source)
+          && request.resource.data.source in workspaceSourceIds(workspaceId, 'sourceIds')
           && validInquiryStatus(request.resource.data.status)
           && validPriority(request.resource.data.priority)
           && validNullableText(request.resource.data.get('notes', null), 2000)

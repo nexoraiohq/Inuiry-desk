@@ -1,4 +1,12 @@
 /** Local-timezone date-range boundaries for reporting. */
+import {
+  addDaysInZone,
+  dayKeyInZone,
+  formatInZone,
+  startOfDayInZone,
+  zonedDateTimeToDate,
+  zonedParts,
+} from "@/lib/datetime/zone";
 export type RangePreset =
   | "7d"
   | "30d"
@@ -16,26 +24,22 @@ export type DateRange = {
 };
 
 function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return startOfDayInZone(date);
 }
 
 function addDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
+  return addDaysInZone(date, days);
 }
 
 export function parseLocalDate(input: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input);
   if (!match) return null;
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  if (
-    date.getFullYear() !== Number(match[1]) ||
-    date.getMonth() !== Number(match[2]) - 1 ||
-    date.getDate() !== Number(match[3])
-  ) {
-    return null;
-  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = zonedDateTimeToDate(year, month, day, 0, 0);
+  const parts = zonedParts(date);
+  if (parts.year !== year || parts.month !== month || parts.day !== day) return null;
   return date;
 }
 
@@ -60,14 +64,16 @@ export function resolveDateRange(
   }
 
   if (preset === "thisMonth") {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const parts = zonedParts(now);
+    const start = zonedDateTimeToDate(parts.year, parts.month, 1, 0, 0);
+    const end = zonedDateTimeToDate(parts.year, parts.month + 1, 1, 0, 0);
     return { key: preset, label: "This month", start, end };
   }
 
   if (preset === "previousMonth") {
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), 1);
+    const parts = zonedParts(now);
+    const start = zonedDateTimeToDate(parts.year, parts.month - 1, 1, 0, 0);
+    const end = zonedDateTimeToDate(parts.year, parts.month, 1, 0, 0);
     return { key: preset, label: "Previous month", start, end };
   }
 
@@ -81,15 +87,15 @@ export function resolveDateRange(
 }
 
 export function formatShort(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
+  return formatInZone(date, {
     year: "numeric",
     month: "short",
     day: "numeric",
-  }).format(date);
+  });
 }
 
 export function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return dayKeyInZone(date);
 }
 
 export function eachDay(range: DateRange): Date[] {

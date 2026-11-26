@@ -202,7 +202,25 @@ Definitions:
 No new composite index is required: date-range queries use single-field
 indexes. No security rules were weakened.
 
-## 12. What Phase 7 does *not* wire up (yet)
+## 12. Phase 8 business settings
+
+Workspace settings extend `workspaces/{uid}` with structured `profile`,
+`preferences`, `inquirySettings` and `followUpSettings` objects. Older
+workspaces read with safe defaults — no destructive migration is performed.
+`ownerUid`, `createdAt` and unrelated fields are preserved on every save.
+
+Acquisition sources are stored with stable ids so inquiries created with old or
+inactive sources remain valid. Firestore rules validate new inquiries against
+active source ids and edits against all configured source ids.
+
+Timezone preferences use valid IANA identifiers. Stored values remain absolute
+Firestore Timestamps; display, follow-up date inputs and report boundaries use
+the workspace timezone through shared helpers in `lib/datetime/zone.ts`.
+
+Account display name is stored in Firebase Auth and the owner's `users/{uid}`
+document. Password changes use Firebase's password reset email flow.
+
+## 13. What Phase 8 does *not* wire up (yet)
 
 - WhatsApp Business API, automatic WhatsApp/SMS sending, email infrastructure,
   email tracking, push notifications — later phases.

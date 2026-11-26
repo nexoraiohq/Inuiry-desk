@@ -1,39 +1,42 @@
-/** Display formatting that always uses the viewer's local timezone. */
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
+/** Display formatting that respects the workspace timezone when configured. */
+import { formatInZone } from "@/lib/datetime/zone";
+
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   month: "short",
   day: "numeric",
   year: "numeric",
-});
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+};
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   month: "short",
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
-});
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
+};
+const TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   hour: "numeric",
   minute: "2-digit",
-});
+};
+const TODAY_OPTIONS: Intl.DateTimeFormatOptions = {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+};
 
 export function formatDate(date: Date): string {
-  return dateFormatter.format(date);
+  return formatInZone(date, DATE_OPTIONS);
 }
 
 export function formatDateTime(date: Date): string {
-  return dateTimeFormatter.format(date);
+  return formatInZone(date, DATE_TIME_OPTIONS);
 }
 
 export function formatTime(date: Date): string {
-  return timeFormatter.format(date);
+  return formatInZone(date, TIME_OPTIONS);
 }
 
 export function formatToday(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return formatInZone(date, TODAY_OPTIONS);
 }
 
 /** Short relative label with an exact value available through <time dateTime>. */

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
+import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { BarList, TrendBars } from "@/components/reports/charts";
 import { ReportsSkeleton } from "@/components/reports/reports-skeleton";
 import { buttonClasses } from "@/components/ui/button";
@@ -58,6 +59,7 @@ function Section({ title, description, children }: { title: string; description:
 }
 
 export function ReportsView({ uid }: { uid: string }) {
+  const { settings } = useWorkspaceSettings();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [customStart, setCustomStart] = useState(todayInput());
   const [customEnd, setCustomEnd] = useState(todayInput());
@@ -66,6 +68,17 @@ export function ReportsView({ uid }: { uid: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rangeError, setRangeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!settings) return;
+    const timer = window.setTimeout(() => {
+      const preferred = settings.preferences.defaultReportingPeriod;
+      setPreset(preferred);
+      setLoading(true);
+      setRange(resolveDateRange(preferred, "", ""));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [settings]);
 
   const load = useCallback(
     async (activeRange: DateRange) => getReportData(uid, activeRange),
