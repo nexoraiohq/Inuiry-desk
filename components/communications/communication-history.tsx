@@ -126,29 +126,66 @@ export function CommunicationHistory({
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-line/70">
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[720px] text-left">
+              <thead>
+                <tr className="border-b border-line text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">
+                  <th scope="col" className="px-4 py-3">Interaction</th>
+                  <th scope="col" className="px-3 py-3">Summary</th>
+                  <th scope="col" className="px-3 py-3">Occurred</th>
+                  <th scope="col" className="px-4 py-3">Logged by</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((item) => (
+                  <tr
+                    key={item.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open interaction: ${item.summary}`}
+                    onClick={() => setSelected(item)}
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelected(item); }}
+                    className="cursor-pointer border-b border-line/70 transition-colors last:border-b-0 hover:bg-surface/60"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex flex-nowrap items-center gap-2">
+                        <CommunicationChannelBadge channel={item.channel} />
+                        <CommunicationDirectionBadge direction={item.direction} />
+                        <CommunicationOutcomeBadge outcome={item.outcome} />
+                      </div>
+                    </td>
+                    <td className="max-w-md px-3 py-3">
+                      <p className="truncate text-[13px] text-ink">{item.summary}</p>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[12px] text-muted">
+                      <time dateTime={item.occurredAt.toISOString()}>{formatDateTime(item.occurredAt)}</time>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-[12px] text-subtle">
+                      {item.createdByUid === user?.uid ? "You" : item.createdByUid.slice(0, 6)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <ul className="divide-y divide-line/70 md:hidden">
             {visible.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
                   onClick={() => setSelected(item)}
-                  className="flex w-full flex-col gap-2 px-5 py-3.5 text-left transition-colors hover:bg-surface/60 sm:flex-row sm:items-center sm:gap-4"
+                  className="flex w-full flex-col gap-2 px-4 py-3.5 text-left transition-colors hover:bg-surface/60"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <CommunicationChannelBadge channel={item.channel} />
-                      <CommunicationDirectionBadge direction={item.direction} />
-                      <CommunicationOutcomeBadge outcome={item.outcome} />
-                    </div>
-                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-ink">{item.summary}</p>
+                  <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+                    <CommunicationChannelBadge channel={item.channel} />
+                    <CommunicationDirectionBadge direction={item.direction} />
+                    <CommunicationOutcomeBadge outcome={item.outcome} />
                   </div>
-                  <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end sm:gap-0.5">
-                    <time dateTime={item.occurredAt.toISOString()} className="text-[11px] text-subtle">
-                      {formatDateTime(item.occurredAt)}
-                    </time>
-                    <span className="text-[11px] text-subtle">
-                      {item.createdByUid === user?.uid ? "You" : item.createdByUid.slice(0, 6)}
-                    </span>
+                  <p className="line-clamp-2 text-[13px] leading-snug text-ink">{item.summary}</p>
+                  <div className="flex items-center justify-between gap-3 text-[11px] text-subtle">
+                    <time dateTime={item.occurredAt.toISOString()}>{formatDateTime(item.occurredAt)}</time>
+                    <span>{item.createdByUid === user?.uid ? "You" : item.createdByUid.slice(0, 6)}</span>
                   </div>
                 </button>
               </li>
