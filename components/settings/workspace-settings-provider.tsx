@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { setWorkspaceDateFormat, setWorkspaceTimeZone } from "@/lib/datetime/zone";
-import { getWorkspaceSettings } from "@/lib/settings/service";
+import { ensureWorkspaceForUser, getWorkspaceSettings } from "@/lib/settings/service";
 import type { WorkspaceSettings } from "@/lib/settings/types";
 
 type ContextValue = {
@@ -39,6 +39,7 @@ export function WorkspaceSettingsProvider({ children }: { children: ReactNode })
   const load = useCallback(async () => {
     if (!user) return;
     try {
+      await ensureWorkspaceForUser(user);
       const result = await getWorkspaceSettings(user.uid);
       setSettings(result);
       setError(null);

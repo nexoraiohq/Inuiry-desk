@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { updateProfile, type User } from "firebase/auth";
 import {
   DashboardServiceError,
@@ -114,13 +114,64 @@ function parseReminderPreferences(value: unknown): ReminderPreferences {
   };
 }
 
+/** Repairs legacy accounts that have Auth identity but missing workspace docs. */
+export async function ensureWorkspaceForUser(user: User): Promise<void> {
+  if (!db) return;
+  const workspaceRef = doc(db, "workspaces", user.uid);
+  const userRef = doc(db, "users", user.uid);
+  try {
+    const [workspace, profile] = await Promise.all([
+      getDoc(workspaceRef),
+      getDoc(userRef),
+    ]);
+    const displayName = user.displayName?.trim() || user.email?.split("@")[0] || "Member";
+    const email = user.email ?? "";
+
+    if (!workspace.exists()) {
+      await setDoc(workspaceRef, {
+        businessName: `${displayName}'s workspace`.slice(0, 150),
+        ownerUid: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    if (!profile.exists() && email) {
+      await setDoc(userRef, {
+        displayName,
+        email,
+        workspaceId: user.uid,
+        createdAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    throw toServiceError(error);
+  }
+}
+
 /** Older workspaces simply receive defaults — no destructive migration. */
 export async function getWorkspaceSettings(uid: string): Promise<WorkspaceSettings> {
   requireUid(uid);
   try {
     const snapshot = await getDoc(doc(firestore(), "workspaces", uid));
     if (!snapshot.exists()) {
-      throw new DashboardServiceError("Workspace not found.", "settings/not-found");
+      // Bootstrap handles this; returning defaults keeps settings readable.
+      return {
+        businessName: "My Business",
+        ownerUid: uid,
+        createdAt: null,
+        updatedAt: null,
+        profile: DEFAULT_PROFILE,
+        preferences: {
+          ...DEFAULT_PREFERENCES,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        },
+        inquirySettings: {
+          sources: defaultSources(),
+          sourceIds: defaultSources().map((item) => item.id),
+          activeSourceIds: defaultSources().map((item) => item.id),
+        },
+        followUpSettings: DEFAULT_FOLLOW_UP_SETTINGS,
+      };
     }
     const data = snapshot.data() as Record<string, unknown>;
     const profileRaw = (data.profile ?? {}) as Record<string, unknown>;
