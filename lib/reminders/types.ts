@@ -3,6 +3,7 @@ export const REMINDER_TYPES = [
   "follow_up_upcoming",
   "follow_up_due",
   "follow_up_overdue",
+  "new_inquiry",
 ] as const;
 export type ReminderType = (typeof REMINDER_TYPES)[number];
 

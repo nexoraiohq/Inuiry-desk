@@ -8,13 +8,13 @@ import {
   Check,
   CheckCheck,
   Inbox,
-  MessageSquare,
   Trash2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Notice } from "@/components/ui/notice";
-import { formatDateTime } from "@/lib/dashboard/format";
+import { formatRelative } from "@/lib/dashboard/format";
 import { groupFor } from "@/lib/follow-ups/date";
+import { syncDerivedNotifications } from "@/lib/reminders/derived";
 import { listFollowUps } from "@/lib/follow-ups/service";
 import { listInquiries } from "@/lib/inquiries/service";
 import {
@@ -45,11 +45,12 @@ export function NotificationsMenu() {
     if (!user) return;
     setLoading(true);
     try {
-      const [followUps, inquiries, reminders] = await Promise.all([
+      const [followUps, inquiries] = await Promise.all([
         listFollowUps(user.uid),
         listInquiries(user.uid),
-        listReminders(user.uid),
       ]);
+      await syncDerivedNotifications(user.uid, followUps, inquiries);
+      const reminders = await listReminders(user.uid);
       const now = new Date();
       setSummary({
         overdue: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "overdue").length,
@@ -87,8 +88,20 @@ export function NotificationsMenu() {
   }, [open]);
 
   const unread = reminders.filter((item) => item.readAt === null);
-  const total = summary.newInquiries + unread.length;
   const showDerivedFollowUps = unread.length === 0;
+  const showDerivedNewInquiries = !reminders.some((item) => item.type === "new_inquiry");
+  const total = (showDerivedNewInquiries ? summary.newInquiries : 0) + unread.length;
+
+  function notificationIcon(type: string) {
+    if (type === "new_inquiry") return Inbox;
+    return CalendarClock;
+  }
+
+  function notificationTone(type: string) {
+    if (type === "follow_up_overdue") return "text-danger";
+    if (type === "new_inquiry") return "text-success";
+    return "text-brand";
+  }
 
   async function run(action: () => Promise<unknown>, message: string) {
     if (!user) return;
@@ -159,22 +172,31 @@ export function NotificationsMenu() {
             <p className="mt-4 text-[12px] text-muted">Nothing needs attention right now.</p>
           ) : (
             <div className="mt-3 max-h-[60vh] space-y-1.5 overflow-y-auto">
-              {reminders.map((item) => (
-                <div key={item.id} className="rounded-lg px-2 py-2 transition-colors hover:bg-surface/60">
-                  <div className="flex items-start gap-2.5">
-                    <MessageSquare className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        {item.readAt === null ? <span className="size-1.5 shrink-0 rounded-full bg-brand" aria-label="Unread" /> : null}
-                        <Link href={`/follow-ups/${item.followUpId}`} onClick={() => setOpen(false)} className="truncate text-[12px] font-medium text-ink hover:text-brand">
-                          {item.title}
-                        </Link>
+              {reminders.map((item) => {
+                const Icon = notificationIcon(item.type);
+                const isUnread = item.readAt === null;
+                const href = item.type === "new_inquiry"
+                  ? `/inquiries/${item.inquiryId}`
+                  : `/follow-ups/${item.followUpId}`;
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-lg px-2 py-2 transition-colors hover:bg-surface/60 ${isUnread ? "bg-brand-soft/40" : "opacity-70"}`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <Icon className={`mt-0.5 size-4 shrink-0 ${notificationTone(item.type)}`} aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          {isUnread ? <span className="size-1.5 shrink-0 rounded-full bg-brand" aria-label="Unread" /> : null}
+                          <Link href={href} onClick={() => setOpen(false)} className={`truncate text-[12px] text-ink hover:text-brand ${isUnread ? "font-semibold" : "font-medium"}`}>
+                            {item.title}
+                          </Link>
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-muted">{item.message}</p>
+                        <time dateTime={item.scheduledFor.toISOString()} className="mt-1 block text-[10px] text-subtle">
+                          {formatRelative(item.scheduledFor)}
+                        </time>
                       </div>
-                      <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-muted">{item.message}</p>
-                      <time dateTime={item.scheduledFor.toISOString()} className="mt-1 block text-[10px] text-subtle">
-                        {formatDateTime(item.scheduledFor)}
-                      </time>
-                    </div>
                     <div className="flex shrink-0 flex-col gap-1">
                       {item.readAt === null ? (
                         <button
@@ -201,7 +223,8 @@ export function NotificationsMenu() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {showDerivedFollowUps && summary.overdue > 0 ? (
                 <Link href="/follow-ups" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
@@ -217,7 +240,7 @@ export function NotificationsMenu() {
                   <span className="text-[11px] text-subtle">View</span>
                 </Link>
               ) : null}
-              {summary.newInquiries > 0 ? (
+              {showDerivedNewInquiries && summary.newInquiries > 0 ? (
                 <Link href="/inquiries" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
                   <Inbox className="size-4 shrink-0 text-brand" aria-hidden="true" />
                   <span className="min-w-0 flex-1 text-[12px] text-ink">{summary.newInquiries} new inquiries</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Download } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { BarList, TrendBars } from "@/components/reports/charts";
@@ -85,6 +85,17 @@ export function ReportsView({ uid }: { uid: string }) {
     [uid]
   );
 
+  const refresh = useCallback(() => {
+    if (!range) return;
+    setLoading(true);
+    void load(range)
+      .then((result) => { setData(result); setError(null); })
+      .catch((caught: unknown) => {
+        setError(caught instanceof Error ? caught.message : "Could not load reports.");
+      })
+      .finally(() => setLoading(false));
+  }, [load, range]);
+
   useEffect(() => {
     if (!range) return;
     let active = true;
@@ -150,9 +161,14 @@ export function ReportsView({ uid }: { uid: string }) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <PageHeader title="Reports" description="Business performance from your workspace records.">
-        <button type="button" onClick={exportCsv} disabled={!data} className={buttonClasses("secondary", "md", "h-9")}>
-          <Download className="size-4" aria-hidden="true" /> Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={refresh} disabled={loading} className={buttonClasses("secondary", "md", "h-9")}>
+            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" /> Refresh
+          </button>
+          <button type="button" onClick={exportCsv} disabled={!data} className={buttonClasses("secondary", "md", "h-9")}>
+            <Download className="size-4" aria-hidden="true" /> Export CSV
+          </button>
+        </div>
       </PageHeader>
 
       <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">

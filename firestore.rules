@@ -89,6 +89,10 @@ service cloud.firestore {
       return value == null || (value is string && value.size() <= maxLength);
     }
 
+    function validNotificationType(value) {
+      return value in ['follow_up_upcoming', 'follow_up_due', 'follow_up_overdue', 'new_inquiry'];
+    }
+
     function validReminderSettings(value) {
       return value == null || (value is map
         && value.get('remindersEnabled', true) is bool
@@ -335,8 +339,22 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
           && request.resource.data.readAt == request.time;
 
+        allow create: if isOwner(workspaceId)
+          && request.resource.data.createdByUid == request.auth.uid
+          && validNotificationType(request.resource.data.type)
+          && validText(request.resource.data.title, 150)
+          && validText(request.resource.data.message, 500)
+          && validText(request.resource.data.inquiryId, 150)
+          && request.resource.data.followUpId is string
+          && request.resource.data.followUpId.size() <= 150
+          && validText(request.resource.data.deduplicationKey, 200)
+          && request.resource.data.status == 'delivered'
+          && request.resource.data.deliveryStatus == 'delivered'
+          && request.resource.data.readAt == null
+          && validTimestamp(request.resource.data.scheduledFor)
+          && validTimestamp(request.resource.data.createdAt)
+          && request.resource.data.createdAt == request.time;
         allow delete: if isOwner(workspaceId);
-        allow create: if false;
       }
 
       // ---- Reminder execution jobs (scheduler-owned) -------------------
