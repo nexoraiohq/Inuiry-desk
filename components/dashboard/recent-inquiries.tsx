@@ -12,6 +12,7 @@ export function RecentInquiries({ inquiries }: { inquiries: InquiryRecord[] }) {
     <Panel
       title="Recent inquiries"
       description="The newest enquiries, where they came from and where they stand."
+      icon={Inbox}
       meta={inquiries.length ? `Latest ${inquiries.length}` : undefined}
       action={{ href: "/inquiries", label: "All inquiries" }}
     >

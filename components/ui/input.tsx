@@ -13,8 +13,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export const inputBase =
-  "w-full rounded-xl border border-line bg-canvas px-3.5 text-sm text-ink placeholder:text-subtle " +
-  "dark:border-[#2d3547] dark:bg-[#1b2230] dark:placeholder:text-[#788399] " +
+  "w-full rounded-lg border border-line bg-surface px-3.5 text-[14px] text-ink placeholder:text-subtle " +
+  "dark:border-line dark:bg-surface dark:placeholder:text-subtle " +
   "transition-colors outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 " +
   "disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted";
 
@@ -77,8 +77,8 @@ export function Field({ label, error, hint, children }: FieldProps) {
     : only;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[13px] font-medium text-ink">
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-[14px] font-medium text-ink">
         {label}
       </label>
       {control}

@@ -42,7 +42,7 @@ const negativeOutcomes: CommunicationOutcome[] = [
 
 function Pill({ label, tone }: { label: string; tone: string }) {
   return (
-    <span className={cn("inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold", tone)}>
+    <span className={cn("inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-medium", tone)}>
       {label}
     </span>
   );
@@ -63,7 +63,7 @@ export function CommunicationDirectionBadge({ direction }: { direction: Communic
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium whitespace-nowrap",
         direction === "incoming" ? "bg-brand-soft text-brand" : "bg-surface text-muted"
       )}
     >

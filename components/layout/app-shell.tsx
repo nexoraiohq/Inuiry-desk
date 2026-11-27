@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const closeMobile = () => setDrawerOpenedAt(null);
 
   return (
-    <div className="min-h-screen bg-surface transition-colors duration-200">
+    <div className="min-h-screen bg-canvas transition-colors duration-200">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div
         className={cn(
           "flex min-h-screen flex-col transition-[padding] duration-200 ease-out",
-          collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]"
+          collapsed ? "lg:pl-[80px]" : "lg:pl-[264px]"
         )}
       >
         <Topbar
@@ -47,9 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main
           id="main-content"
-          className="flex-1 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10"
+          className="relative flex-1 px-5 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12"
         >
-          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1520px]">{children}</div>
         </main>
       </div>
     </div>

@@ -103,7 +103,7 @@ export function SubscriptionForm() {
 
   if (loading && !state) {
     return (
-      <Card className="bg-canvas/80 p-4 shadow-card sm:p-6">
+      <Card className="bg-surface p-4 shadow-card sm:p-6">
         <h2 className="font-display text-[15px] font-semibold text-ink">Subscription</h2>
         <p className="mt-3 text-[12px] text-muted">Loading subscription information…</p>
       </Card>
@@ -184,7 +184,7 @@ export function SubscriptionForm() {
   }
 
   return (
-    <Card className="bg-canvas/80 p-4 shadow-card sm:p-6">
+    <Card className="bg-surface p-4 shadow-card sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-[15px] font-semibold text-ink">Subscription &amp; billing</h2>

@@ -63,7 +63,7 @@ export function BusinessProfileForm({
   }
 
   return (
-    <Card className="bg-canvas/80 p-4 shadow-card sm:p-6">
+    <Card className="bg-surface p-4 shadow-card sm:p-6">
       <h2 className="font-display text-[15px] font-semibold text-ink">Business profile</h2>
       <p className="mt-1 text-[12px] text-muted">Shown across your workspace. Only your own workspace is updated.</p>
       {error ? <div className="mt-4"><Notice tone="danger" message={error} onDismiss={() => setError(null)} /></div> : null}

@@ -9,12 +9,14 @@ type MetricCardProps = {
   icon: LucideIcon;
   /** When provided the whole card becomes a shortcut to the relevant list. */
   href?: string;
+  /** Renders inside a shared strip rather than as a standalone card. */
+  bare?: boolean;
 };
 
 /** A real number from Firestore, with an optional route to act on it. */
-export function MetricCard({ label, value, hint, icon: Icon, href }: MetricCardProps) {
-  const body = (
-    <Card className="h-full bg-canvas/80 p-4 shadow-card transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-brand/25 group-hover:shadow-raised sm:p-5">
+export function MetricCard({ label, value, hint, icon: Icon, href, bare }: MetricCardProps) {
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <p className="min-w-0 text-[13px] font-medium text-muted sm:text-[14px]">{label}</p>
         <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand sm:size-9">
@@ -32,14 +34,31 @@ export function MetricCard({ label, value, hint, icon: Icon, href }: MetricCardP
           </span>
         ) : null}
       </div>
-    </Card>
+    </>
   );
 
-  if (!href) return body;
+  if (bare) {
+    if (!href) return <div className="h-full px-5 py-5">{content}</div>;
+    return (
+      <Link href={href} className="group block h-full px-5 py-5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+        {content}
+      </Link>
+    );
+  }
+
+  if (!href) {
+    return (
+      <Card className="h-full p-4 transition-all duration-200 sm:p-5">
+        {content}
+      </Card>
+    );
+  }
 
   return (
     <Link href={href} className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
-      {body}
+      <Card className="h-full p-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-brand/25 group-hover:shadow-raised sm:p-5">
+        {content}
+      </Card>
     </Link>
   );
 }

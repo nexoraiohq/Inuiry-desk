@@ -61,7 +61,7 @@ export function ProfileMenu() {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-line bg-canvas p-1 shadow-raised"
+          className="absolute right-0 top-12 z-50 w-60 rounded-2xl border border-line bg-surface p-2 shadow-raised"
         >
           <div className="flex flex-col gap-0.5 px-2.5 py-2.5">
             <p className="text-[13px] font-semibold text-ink">{displayName}</p>
@@ -94,6 +94,7 @@ export function HeaderActions() {
       <ThemeToggle />
       <HeaderSearch />
       <NotificationsMenu />
+      <span className="mx-1 hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
       <HeaderAddInquiry />
       {user ? (
         <ProfileMenu />

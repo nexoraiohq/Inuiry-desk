@@ -16,7 +16,8 @@ function getSnapshot() {
 }
 
 function getServerSnapshot() {
-  return false;
+  // Matches the pre-paint default: dark unless the user stored "light".
+  return true;
 }
 
 /** Animated sun/moon toggle. The initial class is set before paint by the root script. */

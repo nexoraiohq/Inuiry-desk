@@ -81,7 +81,7 @@ export function CommunicationHistory({
   }
 
   return (
-    <Card className="overflow-hidden bg-canvas/80 shadow-card">
+    <Card className="overflow-hidden bg-surface shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
         <div className="min-w-0">
           <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
@@ -129,7 +129,7 @@ export function CommunicationHistory({
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[720px] text-left">
               <thead>
-                <tr className="border-b border-line text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">
+                <tr className="border-b border-line text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">
                   <th scope="col" className="px-4 py-3">Interaction</th>
                   <th scope="col" className="px-3 py-3">Summary</th>
                   <th scope="col" className="px-3 py-3">Occurred</th>

@@ -14,7 +14,7 @@ export function DashboardError({
   title?: string;
 }) {
   return (
-    <Card className="bg-canvas/80 p-5 shadow-card sm:p-8" role="alert">
+    <Card className="bg-surface p-5 shadow-card sm:p-8" role="alert">
       <div className="flex max-w-lg flex-col items-start gap-3">
         <span className="grid size-9 place-items-center rounded-xl bg-danger-soft text-danger">
           <AlertCircle className="size-5" aria-hidden="true" />

@@ -28,14 +28,14 @@ export function Sidebar({ collapsed }: SidebarProps) {
     <aside
       onMouseLeave={() => setHover(null)}
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden flex-col overflow-hidden border-r border-white/5 bg-[#111827] transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
+        "fixed inset-y-0 left-0 z-40 hidden flex-col overflow-hidden border-r border-white/10 bg-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
         expanded ? "w-[264px]" : "w-[80px]",
         flyout && "shadow-raised"
       )}
     >
       <div
         onMouseEnter={openFlyout}
-        className="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5"
+        className="flex h-20 shrink-0 items-center gap-3 border-b border-white/10 px-6"
       >
         <BrandMark />
         {expanded ? (
@@ -50,14 +50,14 @@ export function Sidebar({ collapsed }: SidebarProps) {
       <nav
         aria-label="Main"
         onMouseEnter={openFlyout}
-        className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-6"
+        className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-8"
       >
         <NavList collapsed={!expanded} dark onHover={openFlyout} />
       </nav>
 
-      <div className="shrink-0 border-t border-white/5 p-4">
+      <div className="shrink-0 border-t border-white/10 p-4">
         {expanded ? (
-          <div className="nav-reveal rounded-xl border border-white/5 bg-white/5 p-3">
+          <div className="nav-reveal rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
             <div className="flex items-center gap-2.5">
               {settings?.profile.logoUrl ? (
                 <span
@@ -81,10 +81,17 @@ export function Sidebar({ collapsed }: SidebarProps) {
               </div>
             </div>
           </div>
+        ) : settings?.profile.logoUrl ? (
+          <span
+            className="mx-auto block size-9 rounded-lg bg-cover bg-center ring-1 ring-white/10"
+            style={{ backgroundImage: `url("${settings.profile.logoUrl}")` }}
+            role="img"
+            aria-label={`${settings.businessName} logo`}
+          />
         ) : (
-          <div className="mx-auto grid size-9 place-items-center rounded-lg bg-white/5">
-            <span className="size-2 rounded-full bg-brand" aria-hidden="true" />
-          </div>
+          <span className="mx-auto grid size-9 place-items-center rounded-lg bg-brand text-[12px] font-semibold text-white">
+            {settings?.businessName?.charAt(0).toUpperCase() ?? "I"}
+          </span>
         )}
       </div>
     </aside>

@@ -12,7 +12,7 @@ export function InquiryDetailSkeleton() {
         <Bar className="h-3 w-64 max-w-full" />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="bg-canvas/80 p-5 shadow-card lg:col-span-2">
+        <Card className="bg-surface p-5 shadow-card lg:col-span-2">
           <Bar className="h-4 w-32" />
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {[0, 1, 2, 3, 4, 5].map((key) => (
@@ -23,12 +23,12 @@ export function InquiryDetailSkeleton() {
             ))}
           </div>
         </Card>
-        <Card className="bg-canvas/80 p-5 shadow-card">
+        <Card className="bg-surface p-5 shadow-card">
           <Bar className="h-4 w-28" />
           <Bar className="mt-5 h-10 w-full" />
         </Card>
       </div>
-      <Card className="bg-canvas/80 p-5 shadow-card">
+      <Card className="bg-surface p-5 shadow-card">
         <Bar className="h-4 w-28" />
         <div className="mt-5 space-y-4">
           {[0, 1, 2].map((key) => (

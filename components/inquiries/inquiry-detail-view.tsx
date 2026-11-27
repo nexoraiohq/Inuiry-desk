@@ -31,7 +31,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageIntro } from "@/components/ui/page-intro";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { formatDateTime, humanize } from "@/lib/dashboard/format";
@@ -152,7 +152,7 @@ export function InquiryDetailView({
         />
       ) : null}
 
-      <PageHeader title={inquiry.fullName} description={inquiry.service}>
+      <PageIntro title={inquiry.fullName} description={inquiry.service}>
         <div className="flex flex-wrap items-center gap-2">
           <a href={telHref(inquiry.phone)} className={buttonClasses("secondary", "md", "h-9")}>
             <Phone className="size-4" aria-hidden="true" /> Call
@@ -182,10 +182,10 @@ export function InquiryDetailView({
             <Pencil className="size-4" aria-hidden="true" /> Edit
           </button>
         </div>
-      </PageHeader>
+      </PageIntro>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="bg-canvas/80 p-5 shadow-card lg:col-span-2">
+        <Card className="bg-surface p-5 shadow-card lg:col-span-2">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={inquiry.status} />
             <PriorityBadge priority={inquiry.priority} />
@@ -225,7 +225,7 @@ export function InquiryDetailView({
           </div>
         </Card>
 
-        <Card className="bg-canvas/80 p-5 shadow-card">
+        <Card className="bg-surface p-5 shadow-card">
           <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
             Update status
           </h2>
@@ -245,7 +245,7 @@ export function InquiryDetailView({
         </Card>
       </div>
 
-      <Card className="overflow-hidden bg-canvas/80 shadow-card">
+      <Card className="overflow-hidden bg-surface shadow-card">
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
             <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
@@ -276,7 +276,7 @@ export function InquiryDetailView({
               .filter((group) => group.items.length > 0)
               .map((group) => (
                 <div key={group.label}>
-                  <p className="px-5 pt-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">
+                  <p className="px-5 pt-3 text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">
                     {group.label} · {group.items.length}
                   </p>
                   <ul>
@@ -311,7 +311,7 @@ export function InquiryDetailView({
         onChanged={refresh}
       />
 
-      <Card className="overflow-hidden bg-canvas/80 shadow-card">
+      <Card className="overflow-hidden bg-surface shadow-card">
         <div className="border-b border-line px-5 py-4">
           <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
             Activity timeline

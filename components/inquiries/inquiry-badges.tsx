@@ -14,7 +14,7 @@ export function PriorityBadge({ priority }: { priority: InquiryPriority }) {
   return (
     <span
       className={cn(
-        "inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold",
+        "inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-medium",
         priorityTones[priority]
       )}
     >

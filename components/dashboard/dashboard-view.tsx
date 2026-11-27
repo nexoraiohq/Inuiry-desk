@@ -2,84 +2,47 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  CalendarClock,
-  CheckCircle2,
-  CircleDot,
-  Inbox,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
-import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
-import { DashboardSubscriptionCard } from "@/components/subscription/dashboard-subscription-card";
-import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
-import { MetricCard } from "@/components/dashboard/metric-card";
+import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
+import { PriorityQueue } from "@/components/dashboard/priority-queue";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { RecentInquiries } from "@/components/dashboard/recent-inquiries";
-import { UpcomingFollowUps } from "@/components/dashboard/upcoming-follow-ups";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useDashboardData } from "@/components/dashboard/use-dashboard-data";
+import { DashboardSubscriptionCard } from "@/components/subscription/dashboard-subscription-card";
 import { buttonClasses } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { formatToday } from "@/lib/dashboard/format";
 import { getNavItem } from "@/lib/navigation";
 import type { DashboardData } from "@/lib/dashboard/types";
 
 function DashboardResults({ data }: { data: DashboardData }) {
-  const metrics = [
-    {
-      label: "Inquiries",
-      value: data.metrics.totalInquiries,
-      hint: "every enquiry on record",
-      icon: Inbox,
-      href: "/inquiries",
-    },
-    {
-      label: "Need a first reply",
-      value: data.metrics.newInquiries,
-      hint: "still marked as new",
-      icon: CircleDot,
-      href: "/inquiries",
-    },
-    {
-      label: "Won",
-      value: data.metrics.convertedInquiries,
-      hint: "marked as converted",
-      icon: CheckCircle2,
-      href: "/inquiries",
-    },
-    {
-      label: "Follow-ups due",
-      value: data.metrics.followUpsDue,
-      hint: "overdue or due today",
-      icon: CalendarClock,
-      href: "/follow-ups",
-    },
-  ];
-
   return (
-    <>
+    <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[12px] font-semibold tracking-[0.12em] text-subtle uppercase">
-          Workspace snapshot
-        </h2>
-        <p className="text-[12px] text-subtle">Counts come from your own records</p>
+        <h2 className="eyebrow text-subtle">Workspace snapshot</h2>
+        <p className="text-[11px] text-subtle">Live counts from your records</p>
       </div>
-      <section aria-label="Key metrics" className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </section>
+      <DashboardSummary
+        totalInquiries={data.metrics.totalInquiries}
+        newInquiries={data.metrics.newInquiries}
+        convertedInquiries={data.metrics.convertedInquiries}
+        followUpsDue={data.metrics.followUpsDue}
+      />
 
-      <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
-        <div className="min-w-0 lg:col-span-2">
-          <RecentInquiries inquiries={data.recentInquiries} />
-        </div>
-        <UpcomingFollowUps followUps={data.upcomingFollowUps} />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]">
+        <RecentInquiries inquiries={data.recentInquiries} />
+        <PriorityQueue
+          followUps={data.upcomingFollowUps}
+          followUpsDue={data.metrics.followUpsDue}
+          newInquiries={data.metrics.newInquiries}
+        />
       </div>
 
       <RecentActivity activities={data.recentActivities} />
-    </>
+    </div>
   );
 }
 
@@ -96,24 +59,25 @@ function WorkspaceOverview({ uid }: { uid: string }) {
   }, []);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <PageHeader title={page.title} description={page.description}>
-        <div className="flex flex-col items-start gap-1.5 sm:items-end">
-          <p className="text-[13px] text-muted">
-            {today ? formatToday(today) : ""}
-          </p>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+        <div className="min-w-0">
+          <h1 className="font-display text-[28px] leading-none font-semibold tracking-[-0.035em] text-ink">
+            {page.title}
+          </h1>
+          <p className="mt-2 text-[13px] leading-5 text-muted">{page.description}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-[13px] text-muted">{today ? formatToday(today) : ""}</p>
           {settings?.businessName ? (
             <p className="text-[12px] text-subtle">{settings.businessName}</p>
           ) : null}
-          <Link
-            href="/inquiries"
-            className={buttonClasses("secondary", "md", "h-9")}
-          >
+          <Link href="/inquiries" className={buttonClasses("primary", "md")}>
             Open inquiries
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
-      </PageHeader>
+      </header>
 
       <DashboardSubscriptionCard />
 
@@ -121,10 +85,7 @@ function WorkspaceOverview({ uid }: { uid: string }) {
         <DashboardSkeleton />
       ) : error || !data ? (
         <DashboardError
-          message={
-            error ??
-            "We couldn't load your dashboard data. Please try again."
-          }
+          message={error ?? "We couldn't load your dashboard data. Please try again."}
           onRetry={retry}
         />
       ) : (
@@ -137,8 +98,6 @@ function WorkspaceOverview({ uid }: { uid: string }) {
 /** Authenticated dashboard shell — data is scoped to the signed-in UID. */
 export function DashboardView() {
   const { user } = useAuth();
-
   if (!user) return <DashboardSkeleton />;
-
   return <WorkspaceOverview key={user.uid} uid={user.uid} />;
 }

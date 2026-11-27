@@ -26,7 +26,7 @@ const priorityTones: Record<InquiryPriority, string> = {
 
 function Pill({ label, tone }: { label: string; tone: string }) {
   return (
-    <span className={cn("inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold", tone)}>
+    <span className={cn("inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-medium", tone)}>
       {label}
     </span>
   );

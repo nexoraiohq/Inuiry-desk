@@ -61,8 +61,8 @@ export function NavList({
                       collapsed && "justify-center px-0",
                       dark
                         ? isActive
-                          ? "bg-white/10 text-white"
-                          : "text-white/60 hover:bg-white/5 hover:text-white"
+                          ? "bg-white/[0.09] text-white shadow-[inset_3px_0_0_0_rgba(255,255,255,0.55)]"
+                          : "text-white/55 hover:bg-white/5 hover:text-white"
                         : isActive
                           ? "bg-brand-soft text-brand"
                           : "text-muted hover:bg-surface hover:text-ink"

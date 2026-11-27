@@ -15,7 +15,7 @@ export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps)
   const pathname = usePathname();
   const section = getNavSection(pathname);
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-canvas px-4 sm:gap-3 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center gap-3 border-b border-line/80 bg-canvas px-5 sm:gap-4 lg:px-10">
       <button
         type="button"
         onClick={onOpenMenu}
@@ -40,8 +40,8 @@ export function Topbar({ collapsed, onToggleCollapse, onOpenMenu }: TopbarProps)
         <p className="truncate font-display text-[14px] font-semibold tracking-[-0.01em] text-ink sm:text-[15px] lg:hidden">
           Inquiry Desk
         </p>
-        <p className="hidden truncate text-[11px] font-medium text-subtle lg:block">
-          {section}
+        <p className="hidden truncate text-[12px] font-medium tracking-wide text-subtle lg:block">
+          Workspace <span className="mx-2 text-line">/</span> <span className="text-ink">{section}</span>
         </p>
       </div>
 

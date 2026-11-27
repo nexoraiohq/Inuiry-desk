@@ -38,7 +38,7 @@ export function InquiryActions({
   onMove,
 }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
       <Link href={`/inquiries/${item.id}`} className={buttonClasses("ghost", "sm", iconButton)}>
         View
       </Link>

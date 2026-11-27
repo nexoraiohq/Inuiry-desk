@@ -11,7 +11,7 @@ import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
 import { SubscriptionForm } from "@/components/settings/subscription-form";
 import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { Notice } from "@/components/ui/notice";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageIntro } from "@/components/ui/page-intro";
 import { saveWorkspaceSettings, toSettingsInput } from "@/lib/settings/service";
 import type { WorkspaceSettings } from "@/lib/settings/types";
 
@@ -44,7 +44,7 @@ export function SettingsView({ uid }: { uid: string }) {
   if (loading || !settings) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Settings" description="Manage your workspace and account." />
+        <PageIntro title="Settings" description="Manage your workspace and account." />
         <SettingsSkeleton />
       </div>
     );
@@ -52,19 +52,24 @@ export function SettingsView({ uid }: { uid: string }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Settings" description="Manage your business identity, preferences and account." />
+      <PageIntro title="Settings" description="Manage your business identity, preferences and account." />
       {saveError ? <Notice tone="danger" message={saveError} onDismiss={() => setSaveError(null)} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <nav aria-label="Settings sections" className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
+        <nav
+          aria-label="Settings sections"
+          className="flex gap-1 overflow-x-auto rounded-2xl border border-line/80 bg-surface p-2 shadow-card lg:flex-col lg:overflow-visible"
+        >
           {SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
               onClick={() => setActive(section.id)}
               aria-current={active === section.id ? "page" : undefined}
-              className={`shrink-0 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium transition-colors ${
-                active === section.id ? "bg-brand-soft text-brand" : "text-muted hover:bg-surface hover:text-ink"
+              className={`shrink-0 rounded-xl px-3.5 py-2.5 text-left text-[14px] font-medium transition-colors ${
+                active === section.id
+                  ? "bg-brand-soft font-semibold text-brand"
+                  : "text-muted hover:bg-canvas hover:text-ink"
               }`}
             >
               {section.label}

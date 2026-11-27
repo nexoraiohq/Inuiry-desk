@@ -40,7 +40,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageIntro } from "@/components/ui/page-intro";
 import { Select } from "@/components/ui/select";
 
 type Sort = "newest" | "oldest" | "name" | "manual";
@@ -219,7 +219,7 @@ export function InquiriesView({ uid }: { uid: string }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader
+      <PageIntro
         title="Inquiries"
         description="Capture, organize and track every customer inquiry."
       >
@@ -227,7 +227,7 @@ export function InquiriesView({ uid }: { uid: string }) {
           <Plus className="size-4" aria-hidden="true" />
           Add Inquiry
         </button>
-      </PageHeader>
+      </PageIntro>
 
       {notice ? <Notice tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
       {error ? <Notice tone="danger" message={error} onDismiss={() => setError(null)} /> : null}
@@ -247,7 +247,8 @@ export function InquiriesView({ uid }: { uid: string }) {
             <MetricCard label="New inquiries" value={counts.newCount} hint="awaiting first contact" icon={CircleDot} />
           </section>
 
-          <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">
+          <Card className="bg-surface/60 p-4 shadow-none sm:p-5">
+            <p className="mb-3 text-[11px] font-semibold tracking-[0.12em] text-subtle uppercase">Filters</p>
             <div className="flex flex-col gap-3">
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
@@ -296,7 +297,7 @@ export function InquiriesView({ uid }: { uid: string }) {
             </div>
           </Card>
 
-          <Card className="overflow-hidden bg-canvas/80 shadow-card">
+          <Card className="overflow-hidden bg-surface shadow-card">
             {visible.length === 0 ? (
               <div className="px-4 py-8 sm:px-5">
                 <EmptyState
@@ -319,14 +320,14 @@ export function InquiriesView({ uid }: { uid: string }) {
             ) : (
               <>
                 <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full min-w-[720px] text-left">
+                  <table className="w-full min-w-[880px] text-left">
                     <thead>
-                      <tr className="border-b border-line text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">
+                      <tr className="border-b border-line text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">
                         <th scope="col" className="px-4 py-3">Customer</th>
                         <th scope="col" className="px-3 py-3">Service / Source</th>
                         <th scope="col" className="px-3 py-3">Priority / Status</th>
                         <th scope="col" className="px-3 py-3">Added</th>
-                        <th scope="col" className="px-4 py-3 text-right">Actions</th>
+                        <th scope="col" className="whitespace-nowrap px-4 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -368,7 +369,7 @@ export function InquiriesView({ uid }: { uid: string }) {
                           <td className="px-3 py-3 text-[12px] text-muted">
                             <time dateTime={item.createdAt.toISOString()}>{formatDate(item.createdAt)}</time>
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="whitespace-nowrap px-4 py-3 text-right">
                             <div className="flex justify-end">
                               <InquiryActions
                                 item={item}

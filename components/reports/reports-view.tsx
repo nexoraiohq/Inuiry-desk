@@ -10,8 +10,9 @@ import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageIntro } from "@/components/ui/page-intro";
 import { Select } from "@/components/ui/select";
+import { humanize } from "@/lib/dashboard/format";
 import { buildReportCsv, downloadCsv } from "@/lib/reports/csv";
 import {
   formatShort,
@@ -39,22 +40,22 @@ function todayInput(): string {
 
 function Metric({ label, value, hint }: { label: string; value: number | string | null; hint: string }) {
   return (
-    <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">
-      <p className="truncate text-[12px] font-medium text-muted sm:text-[13px]">{label}</p>
-      <p className="mt-3 font-display text-[26px] leading-none font-semibold tracking-[-0.03em] text-ink tabular-nums sm:text-[30px]">
+    <Card className="bg-surface p-4 shadow-card sm:p-5">
+      <p className="truncate text-[13px] font-medium text-muted sm:text-[14px]">{label}</p>
+      <p className="mt-3 font-display text-[30px] leading-none font-semibold tracking-[-0.03em] text-ink tabular-nums sm:text-[32px]">
         {value === null ? "N/A" : value}
       </p>
-      <p className="mt-2 text-[10px] text-subtle sm:text-[11px]">{hint}</p>
+      <p className="mt-2 text-[11px] text-subtle sm:text-[12px]">{hint}</p>
     </Card>
   );
 }
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">
+    <Card className="flex h-full flex-col bg-surface p-4 shadow-card sm:p-5">
       <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
-      <p className="mt-1 text-[12px] leading-relaxed text-muted sm:text-[13px]">{description}</p>
-      <div className="mt-5">{children}</div>
+      <p className="mt-1 text-[13px] leading-5 text-muted sm:text-[14px]">{description}</p>
+      <div className="mt-5 flex flex-1 flex-col">{children}</div>
     </Card>
   );
 }
@@ -80,6 +81,10 @@ export function ReportsView({ uid }: { uid: string }) {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [settings]);
+
+  const trendPeriod = data && data.range.end.getTime() - data.range.start.getTime() > 120 * 86_400_000
+    ? "per month"
+    : "per local day";
 
   const load = useCallback(
     async (activeRange: DateRange) => getReportData(uid, activeRange),
@@ -161,7 +166,7 @@ export function ReportsView({ uid }: { uid: string }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Reports" description="Business performance from your workspace records.">
+      <PageIntro title="Reports" description="Business performance from your workspace records.">
         <div className="flex items-center gap-2">
           <button type="button" onClick={refresh} disabled={loading} className={buttonClasses("secondary", "md", "h-9")}>
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" /> Refresh
@@ -170,9 +175,9 @@ export function ReportsView({ uid }: { uid: string }) {
             <Download className="size-4" aria-hidden="true" /> Export CSV
           </button>
         </div>
-      </PageHeader>
+      </PageIntro>
 
-      <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">
+      <Card className="bg-surface p-4 shadow-card sm:p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select aria-label="Report date range" value={preset} onChange={(e) => applyRange(e.target.value as RangePreset)}>
             {PRESETS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -221,14 +226,12 @@ export function ReportsView({ uid }: { uid: string }) {
               value={data.inquiries.cohortConversionRate === null ? null : `${data.inquiries.cohortConversionRate}%`}
               hint="converted ÷ all inquiries created in range"
             />
-            <Metric label="Archived excluded" value={data.inquiries.archivedExcluded} hint="not counted as active" />
-            <Metric label="Inquiries created" value={data.inquiries.total} hint="see trend below" />
-            <Metric label="Status types" value={data.inquiries.statusDistribution.length} hint="current status distribution" />
+            <Metric label="Archived excluded" value={data.inquiries.archivedExcluded} hint="not counted in totals" />
           </section>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Section title="Inquiry creation trend" description="Inquiries created per local day in the selected range.">
-              <TrendBars points={data.inquiries.trend} />
+            <Section title="Inquiry creation trend" description={`Inquiries created ${trendPeriod} in the selected range.`}>
+              <TrendBars points={data.inquiries.trend} seriesLabel="Inquiries" />
             </Section>
             <Section title="Current status distribution" description="Current status of inquiries created in the range — not a historical funnel.">
               <BarList values={data.inquiries.statusDistribution} />
@@ -249,31 +252,41 @@ export function ReportsView({ uid }: { uid: string }) {
           </div>
 
           <Section title="Customer acquisition" description="Based on the inquiry source field. Unknown or missing sources are grouped separately without altering records.">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div>
-                <h3 className="text-[12px] font-semibold text-ink">Inquiries by source</h3>
-                <div className="mt-3"><BarList values={data.acquisition.bySource} /></div>
-              </div>
-              <div>
-                <h3 className="text-[12px] font-semibold text-ink">Conversion rate by source</h3>
-                <div className="mt-3 space-y-2">
-                  {data.acquisition.rateBySource.length === 0 ? (
-                    <p className="text-[12px] text-subtle">No source data in this range.</p>
-                  ) : (
-                    data.acquisition.rateBySource.map((item) => (
-                      <div key={item.name} className="flex items-center justify-between gap-3 text-[12px]">
-                        <span className="truncate text-muted">{item.name.replaceAll("_", " ")}</span>
-                        <span className="shrink-0 font-semibold tabular-nums text-ink">
-                          {item.rate === null ? "N/A" : `${item.rate}%`} <span className="font-normal text-subtle">({item.converted}/{item.total})</span>
-                        </span>
+            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <h3 className="text-[12px] font-semibold text-ink">Inquiries by source</h3>
+              <h3 className="text-[12px] font-semibold text-ink">Conversion rate by source</h3>
+              {data.acquisition.rateBySource.length === 0 ? (
+                <p className="text-[12px] text-subtle sm:col-span-2">No source data in this range.</p>
+              ) : (
+                data.acquisition.rateBySource.map((item) => {
+                  const max = Math.max(...data.acquisition.rateBySource.map((source) => source.total), 1);
+                  return (
+                    <div key={item.name} className="contents">
+                      <div>
+                        <div className="flex items-center justify-between gap-3 text-[12px]">
+                          <span className="truncate text-muted">{humanize(item.name)}</span>
+                          <span className="shrink-0 font-semibold tabular-nums text-ink">{item.total}</span>
+                        </div>
+                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface">
+                          <div className="h-full rounded-full bg-brand" style={{ width: `${(item.total / max) * 100}%` }} />
+                        </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                      <div>
+                        <div className="flex items-center justify-between gap-3 text-[12px]">
+                          <span className="truncate text-muted">{humanize(item.name)}</span>
+                          <span className="shrink-0 font-semibold tabular-nums text-ink">
+                            {item.rate === null ? "N/A" : `${item.rate}%`} <span className="font-normal text-subtle">({item.converted}/{item.total})</span>
+                          </span>
+                        </div>
+                        <div className="mt-1 h-2" aria-hidden="true" />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
             <p className="mt-4 text-[12px] text-muted">
-              Best-performing source: <span className="font-semibold text-ink">{data.acquisition.bestSource ?? "N/A"}</span>
+              Best-performing source: <span className="font-semibold text-ink">{data.acquisition.bestSource ? humanize(data.acquisition.bestSource) : "N/A"}</span>
               {data.acquisition.unknownCount > 0 ? ` · ${data.acquisition.unknownCount} unknown source(s)` : ""}
             </p>
           </Section>
@@ -289,8 +302,8 @@ export function ReportsView({ uid }: { uid: string }) {
                 <Metric label="Cancelled" value={data.followUps.cancelled} hint="in range" />
               </div>
             </Section>
-            <Section title="Follow-up trend" description="Follow-ups created per local day.">
-              <TrendBars points={data.followUps.trend} />
+            <Section title="Follow-up trend" description={`Follow-ups created ${trendPeriod}.`}>
+              <TrendBars points={data.followUps.trend} seriesLabel="Follow-ups" />
             </Section>
           </div>
 
@@ -303,8 +316,8 @@ export function ReportsView({ uid }: { uid: string }) {
               </div>
               <div className="mt-5"><BarList values={data.communications.byChannel} /></div>
             </Section>
-            <Section title="Communication trend" description="Recorded interactions by local day.">
-              <TrendBars points={data.communications.trend} />
+            <Section title="Communication trend" description={`Recorded interactions ${trendPeriod}.`}>
+              <TrendBars points={data.communications.trend} seriesLabel="Interactions" />
             </Section>
           </div>
 
@@ -327,8 +340,8 @@ export function ReportsView({ uid }: { uid: string }) {
             <Section title="Activity trends" description="System activity events, kept separate from recorded customer communications.">
               <BarList values={data.activities.byType} />
             </Section>
-            <Section title="Activity volume" description="Activity events per local day.">
-              <TrendBars points={data.activities.trend} />
+            <Section title="Activity volume" description={`Activity events ${trendPeriod}.`}>
+              <TrendBars points={data.activities.trend} seriesLabel="Activities" />
             </Section>
           </div>
         </>

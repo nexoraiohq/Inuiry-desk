@@ -27,7 +27,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageIntro } from "@/components/ui/page-intro";
 import { Select } from "@/components/ui/select";
 import { formatDateTime, humanize } from "@/lib/dashboard/format";
 import {
@@ -184,11 +184,11 @@ export function FollowUpsView({ uid }: { uid: string }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Follow-ups" description="Schedule, track and complete every next step." >
+      <PageIntro title="Follow-ups" description="Schedule, track and complete every next step.">
         <button type="button" onClick={openCreate} className={buttonClasses("primary", "md", "h-9")}>
           <Plus className="size-4" aria-hidden="true" /> Schedule follow-up
         </button>
-      </PageHeader>
+      </PageIntro>
 
       {notice ? <Notice tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
       {error ? <Notice tone="danger" message={error} onDismiss={() => setError(null)} /> : null}
@@ -205,7 +205,8 @@ export function FollowUpsView({ uid }: { uid: string }) {
             ))}
           </section>
 
-          <Card className="bg-canvas/80 p-4 shadow-card sm:p-5">
+          <Card className="bg-surface/60 p-4 shadow-none sm:p-5">
+            <p className="mb-3 text-[11px] font-semibold tracking-[0.12em] text-subtle uppercase">Filters</p>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               <div className="relative xl:col-span-1">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
@@ -236,7 +237,7 @@ export function FollowUpsView({ uid }: { uid: string }) {
             </div>
           </Card>
 
-          <Card className="overflow-hidden bg-canvas/80 shadow-card">
+          <Card className="overflow-hidden bg-surface shadow-card">
             {visible.length === 0 ? (
               <div className="px-4 py-8 sm:px-5">
                 <EmptyState
@@ -259,9 +260,9 @@ export function FollowUpsView({ uid }: { uid: string }) {
             ) : (
               <>
                 <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full min-w-[760px] text-left">
+                  <table className="w-full min-w-[880px] text-left">
                     <thead>
-                      <tr className="border-b border-line text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">
+                      <tr className="border-b border-line text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">
                         <th scope="col" className="px-4 py-3">Follow-up</th>
                         <th scope="col" className="px-3 py-3">Due</th>
                         <th scope="col" className="px-3 py-3">Priority</th>
@@ -296,7 +297,10 @@ export function FollowUpsView({ uid }: { uid: string }) {
                               <td className="px-3 py-3"><FollowUpPriorityBadge priority={item.priority} /></td>
                               <td className="px-3 py-3"><FollowUpStatusBadge status={item.status} /></td>
                               <td className="px-4 py-3">
-                                <div className="flex justify-end gap-1">
+                                <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
+                                  <Link href={`/follow-ups/${item.id}`} className={buttonClasses("ghost", "sm", "h-8 px-2 text-muted hover:text-ink")}>
+                                    View
+                                  </Link>
                                   {item.status === "pending" ? (
                                     <button type="button" onClick={() => void handleComplete(item)} disabled={busyId === item.id} className={buttonClasses("ghost", "sm", "h-8 px-2 text-success")}>
                                       <CheckCircle2 className="size-3.5" aria-hidden="true" /> Complete

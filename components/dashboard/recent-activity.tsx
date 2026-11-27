@@ -45,6 +45,7 @@ export function RecentActivity({ activities }: { activities: ActivityRecord[] })
     <Panel
       title="Recent activity"
       description="Changes to inquiries and follow-ups, newest first."
+      icon={ActivityIcon}
       meta={activities.length ? `Latest ${activities.length}` : undefined}
     >
       {activities.length === 0 ? (

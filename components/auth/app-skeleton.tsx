@@ -12,7 +12,7 @@ function DarkBar({ className }: { className: string }) {
 
 function SidebarSkeleton() {
   return (
-    <div className="fixed inset-y-0 left-0 z-40 hidden w-[264px] flex-col border-r border-white/5 bg-[#111827] lg:flex">
+    <div className="fixed inset-y-0 left-0 z-40 hidden w-[264px] flex-col border-r border-white/5 bg-sidebar lg:flex">
       <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5">
         <DarkBar className="size-9 shrink-0 rounded-lg" />
         <DarkBar className="h-3 w-28" />

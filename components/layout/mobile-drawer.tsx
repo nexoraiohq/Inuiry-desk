@@ -37,7 +37,7 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       <div
-        className="absolute inset-0 bg-[#111827]/40"
+        className="absolute inset-0 bg-sidebar/40"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -47,7 +47,7 @@ export function MobileDrawer({ onClose }: MobileDrawerProps) {
         aria-modal="true"
         aria-label="Navigation menu"
         tabIndex={-1}
-        className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-[#111827] text-white shadow-raised outline-none"
+        className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-sidebar text-white shadow-raised outline-none"
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/5 px-5">
           <div className="flex items-center gap-3">

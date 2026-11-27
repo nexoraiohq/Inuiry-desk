@@ -13,7 +13,7 @@ export function UpcomingFollowUps({
 }) {
   return (
     <Panel
-      title="Upcoming follow-ups"
+      title="Next follow-ups"
       description="Who to contact next, and when."
       meta={followUps.length ? `Next ${followUps.length}` : undefined}
       action={{ href: "/follow-ups", label: "All follow-ups" }}

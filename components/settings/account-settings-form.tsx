@@ -49,7 +49,7 @@ export function AccountSettingsForm() {
   }
 
   return (
-    <Card className="bg-canvas/80 p-4 shadow-card sm:p-6">
+    <Card className="bg-surface p-4 shadow-card sm:p-6">
       <h2 className="font-display text-[15px] font-semibold text-ink">Account settings</h2>
       <p className="mt-1 text-[12px] text-muted">Personal details for your signed-in account.</p>
       {error ? <div className="mt-4"><Notice tone="danger" message={error} onDismiss={() => setError(null)} /></div> : null}

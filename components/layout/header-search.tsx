@@ -153,7 +153,7 @@ export function HeaderSearch() {
             <div className="space-y-5">
               {results.inquiries.length > 0 ? (
                 <section>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">Inquiries</h3>
+                  <h3 className="text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">Inquiries</h3>
                   <ul className="mt-2 space-y-1.5">
                     {results.inquiries.map((item) => (
                       <li key={item.id}>
@@ -168,7 +168,7 @@ export function HeaderSearch() {
               ) : null}
               {results.followUps.length > 0 ? (
                 <section>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">Follow-ups</h3>
+                  <h3 className="text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">Follow-ups</h3>
                   <ul className="mt-2 space-y-1.5">
                     {results.followUps.map((item) => (
                       <li key={item.id}>
@@ -183,7 +183,7 @@ export function HeaderSearch() {
               ) : null}
               {results.communications.length > 0 ? (
                 <section>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle">Interactions</h3>
+                  <h3 className="text-[12px] font-medium uppercase tracking-[0.06em] text-subtle">Interactions</h3>
                   <ul className="mt-2 space-y-1.5">
                     {results.communications.map((item) => (
                       <li key={item.id}>

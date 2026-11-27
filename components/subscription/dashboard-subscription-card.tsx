@@ -42,7 +42,7 @@ export function DashboardSubscriptionCard() {
   const attention = !entitlement.canAccessProduct || (entitlement.daysRemaining !== null && entitlement.daysRemaining <= 3);
 
   return (
-    <Card className={`p-4 sm:p-5 ${attention ? "border-brand/30 bg-brand-soft/25" : "bg-canvas/80"}`}>
+    <Card className={`p-4 sm:p-5 ${attention ? "border-brand/30 bg-brand-soft/25" : "bg-surface"}`}>
       <div className="flex flex-wrap items-center gap-3">
         <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface text-brand">
           {entitlement.status === "trialing" ? <Sparkles className="size-4" aria-hidden="true" /> : <CreditCard className="size-4" aria-hidden="true" />}

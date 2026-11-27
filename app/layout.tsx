@@ -44,11 +44,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
-        {/* Set the theme before paint so there is no light-mode flash. */}
+        {/* Dark is the default; only a stored "light" preference overrides it. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('inquiry-desk-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();",
+              "(function(){try{if(localStorage.getItem('inquiry-desk-theme')!=='light'){document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})();",
           }}
         />
       </head>

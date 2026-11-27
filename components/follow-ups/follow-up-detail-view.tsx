@@ -18,7 +18,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageIntro } from "@/components/ui/page-intro";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/dashboard/format";
 import type { ActivityType, FollowUpRecord, InquiryRecord } from "@/lib/dashboard/types";
@@ -130,7 +130,7 @@ export function FollowUpDetailView({ uid, id }: { uid: string; id: string }) {
       {notice ? <Notice tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
       {error ? <Notice tone="danger" message={error} onDismiss={() => setError(null)} /> : null}
 
-      <PageHeader title={item.title} description={item.customerName}>
+      <PageIntro title={item.title} description={item.customerName}>
         <div className="flex flex-wrap items-center gap-2">
           {item.status === "pending" ? (
             <button
@@ -146,10 +146,10 @@ export function FollowUpDetailView({ uid, id }: { uid: string; id: string }) {
             <Pencil className="size-4" aria-hidden="true" /> Edit
           </button>
         </div>
-      </PageHeader>
+      </PageIntro>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="bg-canvas/80 p-5 shadow-card lg:col-span-2">
+        <Card className="bg-surface p-5 shadow-card lg:col-span-2">
           <div className="flex flex-wrap items-center gap-2">
             <FollowUpStatusBadge status={item.status} />
             <FollowUpGroupBadge group={group} />
@@ -177,7 +177,7 @@ export function FollowUpDetailView({ uid, id }: { uid: string; id: string }) {
           </div>
         </Card>
 
-        <Card className="bg-canvas/80 p-5 shadow-card">
+        <Card className="bg-surface p-5 shadow-card">
           <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
             Manage
           </h2>
@@ -216,7 +216,7 @@ export function FollowUpDetailView({ uid, id }: { uid: string; id: string }) {
         </Card>
       </div>
 
-      <Card className="overflow-hidden bg-canvas/80 shadow-card">
+      <Card className="overflow-hidden bg-surface shadow-card">
         <div className="border-b border-line px-5 py-4">
           <h2 className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">Related activity</h2>
           <p className="mt-1 text-[13px] text-muted">What happened around this customer inquiry.</p>
