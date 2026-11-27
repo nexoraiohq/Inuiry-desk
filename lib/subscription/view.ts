@@ -1,23 +1,24 @@
-import type { EntitlementSnapshot } from "@/lib/subscription/entitlements";
-import type { BillingCycle, PlanId, SubscriptionSource, SubscriptionStatus } from "@/lib/subscription/types";
+import type { EntitlementSnapshot } from "./entitlements";
+import type { BillingInterval, Plan, SubscriptionStatus } from "./types";
 
 /** Serialized shapes returned by the authenticated subscription state route. */
 export type SubscriptionView = {
   subscriptionId: string;
   workspaceId: string;
-  planId: PlanId;
+  plan: Plan;
   status: SubscriptionStatus;
-  billingCycle: BillingCycle;
+  billingInterval: BillingInterval;
   trialStartedAt: string | null;
   trialEndsAt: string | null;
-  currentPeriodStart: string | null;
-  currentPeriodEnd: string | null;
+  currentPeriodStartedAt: string;
+  currentPeriodEndsAt: string;
   createdAt: string;
   updatedAt: string;
+  cancelAtPeriodEnd: boolean;
   cancelledAt: string | null;
-  gracePeriodEndsAt: string | null;
-  source: SubscriptionSource;
-  metadata: Record<string, string | number | boolean | null> | null;
+  provider: string | null;
+  providerCustomerId: string | null;
+  providerSubscriptionId: string | null;
 };
 
 export type UsageView = {

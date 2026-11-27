@@ -101,14 +101,19 @@ service cloud.firestore {
     // workspace with no subscription record predates Phase 10 and is
     // grandfathered — it is never treated as expired.
     function subscriptionAllowsWrites(workspaceId) {
-      return !exists(subscriptionPath(workspaceId))
-        || get(subscriptionPath(workspaceId)).data.status in ['active', 'grandfathered']
+      return !exists(subscriptionPath(workspaceId)) || (
+        (get(subscriptionPath(workspaceId)).data.status == 'active'
+          && get(subscriptionPath(workspaceId)).data.currentPeriodEndsAt > request.time)
         || (get(subscriptionPath(workspaceId)).data.status == 'trialing'
           && get(subscriptionPath(workspaceId)).data.trialEndsAt != null
           && get(subscriptionPath(workspaceId)).data.trialEndsAt > request.time)
         || (get(subscriptionPath(workspaceId)).data.status == 'past_due'
-          && get(subscriptionPath(workspaceId)).data.gracePeriodEndsAt != null
-          && get(subscriptionPath(workspaceId)).data.gracePeriodEndsAt > request.time);
+          && get(subscriptionPath(workspaceId)).data.currentPeriodEndsAt > request.time)
+        || (get(subscriptionPath(workspaceId)).data.status == 'cancelled'
+          && get(subscriptionPath(workspaceId)).data.cancelAtPeriodEnd == true
+          && get(subscriptionPath(workspaceId)).data.cancelledAt != null
+          && get(subscriptionPath(workspaceId)).data.currentPeriodEndsAt > request.time)
+      );
     }
 
     function validReminderSettings(value) {

@@ -256,3 +256,98 @@ approved provider and API key before any delivery can be claimed.
 - Admin SDK / server-side session verification — later phases. Firestore rules
   remain the server-side security boundary.
 - Third-party auth providers — later phases.
+
+## 15. Phase 10.1 subscription foundation
+
+### Architecture
+
+| Responsibility | Location |
+| --- | --- |
+| Commercial catalog (trial length, KES 1,500 Starter, monthly interval) | `lib/subscription/catalog.ts` |
+| Strict types and validation | `lib/subscription/types.ts` |
+| Entitlement decisions | `lib/subscription/entitlements.ts` |
+| Trusted server lifecycle operations | `lib/subscription/lifecycle.ts` |
+| Authenticated server read/write operations | `lib/subscription/server.ts` |
+| Server-only Admin bootstrap and ID-token verification | `lib/server/firebase-admin.ts` |
+| Authenticated routes | `app/api/subscription/{trial,state,access,cancel}/route.ts` |
+| UI | `components/settings/subscription-form.tsx`, `components/subscription/*` |
+
+All authoritative decisions use server data. Client components only display the
+state returned by `/api/subscription/state`.
+
+### Firestore schema
+
+```
+workspaces/{uid}/subscription/current
+  subscriptionId, workspaceId,
+  plan: "trial" | "starter",
+  status: "trialing" | "active" | "expired" | "cancelled" | "past_due",
+  trialStartedAt, trialEndsAt,
+  currentPeriodStartedAt, currentPeriodEndsAt,
+  createdAt, updatedAt,
+  cancelAtPeriodEnd, cancelledAt,
+  provider, providerCustomerId, providerSubscriptionId   // all null in 10.1
+```
+
+Top-level `trialClaims/{sha256(normalizedEmail)}` stores the original trial
+window so deleting and recreating an account cannot grant a second trial.
+Clients cannot read or write this collection.
+
+### Trial provisioning
+
+`/api/subscription/state` and `/api/subscription/trial` verify the Firebase ID
+token on the server, verify workspace ownership, and only create a trial when
+the workspace's server-written `createdAt` is within 10 minutes. The 14-day end
+is computed from the server clock and written as a Firestore Timestamp in the
+same Admin transaction as the anti-abuse claim. Existing workspaces never
+receive a new trial.
+
+### Grandfathering policy
+
+A workspace with **no subscription document** is an existing workspace. The
+entitlement engine treats it as `grandfathered`: full Starter feature access,
+no trial and no paid subscription. The client cannot create a subscription
+document — rules allow read only and all writes are Admin-only. Missing data is
+never classified as expired. This policy is repeatable and non-destructive:
+no existing records are rewritten during migration.
+
+### Entitlement and enforcement
+
+`evaluateEntitlement()` is the single authority. Trialing and active Starter
+workspaces get full access. Expired workspaces get none. Past-due access lasts
+until the current period end. Cancellation at period end preserves access until
+the effective date. Server routes call `requireEntitlement()` before a
+privileged operation. Firestore rules additionally check subscription status at
+the database boundary for new inquiries, follow-ups, communications and
+activities; the subscription document itself is read-only to owners.
+
+### Lifecycle (trusted server only)
+
+`lib/subscription/lifecycle.ts` provides `activateStarter`,
+`scheduleCancellationAtPeriodEnd`, `expireEndedSubscription` and the bounded
+`processSubscriptionLifecycle` sweep. Every transition is idempotent and uses
+server time. `activateStarter` is deliberately **not** exposed through a public
+route — it is reserved for a future payment-provider integration. No recurring
+billing or automatic payment collection exists.
+
+### Future payment integration points
+
+- `activateStarter()` is the only pathway that may set `status: "active"`.
+- Provider identifiers are already present and nullable in the schema.
+- A future webhook must verify signatures server-side and then call
+  `activateStarter` / `scheduleCancellationAtPeriodEnd`; it must never accept
+  plan or status values from the browser.
+
+### Environment variables
+
+No new variables. The existing server-only values remain required:
+`FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`,
+`FIREBASE_ADMIN_PRIVATE_KEY`. Public Firebase web config remains in
+`NEXT_PUBLIC_FIREBASE_*`. No payment credentials are introduced.
+
+### Verification
+
+`npm test` runs the entitlement unit suite (no network or credentials).
+Live production verification uses controlled test workspaces and service-account
+credentials generated temporarily through the authenticated Firebase CLI; no
+key material is written to the repository.

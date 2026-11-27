@@ -20,12 +20,8 @@ export async function POST(request: NextRequest) {
       allowed: true,
       feature,
       status: result.entitlement.status,
-      limits: result.entitlement.limits,
-      usage: {
-        totalInquiries: result.usage.totalInquiries,
-        activeInquiries: result.usage.activeInquiries,
-        followUps: result.usage.followUps,
-      },
+      canAccessProduct: result.entitlement.canAccessProduct,
+      features: result.entitlement.features,
     });
   } catch (error) {
     if (error instanceof SubscriptionError) {

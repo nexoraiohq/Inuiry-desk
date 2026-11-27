@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { useSubscription } from "@/components/subscription/subscription-provider";
-import { formatPrice, getPlan } from "@/lib/subscription/catalog";
+import { formatPrice } from "@/lib/subscription/catalog";
 
 /** Shown when the authoritative server says privileged writes are unavailable. */
 export function SubscriptionBanner() {
   const { state } = useSubscription();
-  if (!state || state.entitlement.canWrite) return null;
-
-  const plan = getPlan("starter");
+  if (!state || state.entitlement.canAccessProduct) return null;
   return (
     <div
       role="status"
@@ -24,7 +22,7 @@ export function SubscriptionBanner() {
         </span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <span className="font-medium text-ink">{plan.name} · {formatPrice(plan)}</span>
+        <span className="font-medium text-ink">Starter · {formatPrice("starter")}</span>
         <Link
           href="/settings"
           className="inline-flex items-center gap-1 font-semibold text-brand hover:text-brand-strong"

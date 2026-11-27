@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   SubscriptionError,
-  ensureSubscription,
+  ensureTrialForNewWorkspace,
   getSubscriptionState,
   verifyRequestToken,
 } from "@/lib/subscription/server";
@@ -9,7 +9,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const identity = await verifyRequestToken(request);
-    await ensureSubscription(identity);
+    await ensureTrialForNewWorkspace(identity);
     const state = await getSubscriptionState(identity);
     return NextResponse.json({ ok: true, ...state });
   } catch (error) {

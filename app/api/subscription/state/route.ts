@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   SubscriptionError,
-  ensureSubscription,
+  ensureTrialForNewWorkspace,
   getSubscriptionState,
   verifyRequestToken,
 } from "@/lib/subscription/server";
@@ -9,9 +9,9 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const identity = await verifyRequestToken(request);
-    // Idempotent: creates the trial for a genuinely new workspace, returns the
-    // existing record for everyone else, and never downgrades legacy workspaces.
-    await ensureSubscription(identity);
+    // Idempotent: creates the trial for a genuinely new workspace. Legacy
+    // workspaces keep a missing record and are grandfathered by server policy.
+    await ensureTrialForNewWorkspace(identity);
     const state = await getSubscriptionState(identity);
     return NextResponse.json({ ok: true, ...state });
   } catch (error) {

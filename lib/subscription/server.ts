@@ -1,26 +1,19 @@
 import { createHash } from "node:crypto";
 import { FieldValue, Timestamp, type DocumentSnapshot } from "firebase-admin/firestore";
 import { adminDb, verifyIdToken } from "@/lib/server/firebase-admin";
-import {
-  TRIAL_DURATION_DAYS,
-  type FeatureKey,
-} from "@/lib/subscription/catalog";
-import {
-  authorizeOperation,
-  evaluateEntitlement,
-  type EntitlementSnapshot,
-} from "@/lib/subscription/entitlements";
+import { BILLING_INTERVAL, TRIAL_DURATION_DAYS, type FeatureKey } from "@/lib/subscription/catalog";
+import { authorizeAccess, evaluateEntitlement, type EntitlementSnapshot } from "@/lib/subscription/entitlements";
+import { scheduleCancellationAtPeriodEnd } from "@/lib/subscription/lifecycle";
 import { measureWorkspaceUsage, type UsageSnapshot } from "@/lib/subscription/usage";
 import {
   parseSubscription,
   type FirestoreTime,
   type SubscriptionDocument,
   type SubscriptionRecord,
-  type SubscriptionSource,
 } from "@/lib/subscription/types";
 
-/** Only considered genuinely new inside this window after Auth creation. */
-const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
+/** A workspace is "new" only within this window of its server-written creation. */
+const NEW_WORKSPACE_WINDOW_MS = 10 * 60 * 1000;
 
 export class SubscriptionError extends Error {
   readonly status: number;
@@ -31,20 +24,16 @@ export class SubscriptionError extends Error {
   }
 }
 
-export type VerifiedIdentity = {
-  uid: string;
-  email: string;
-};
+export type VerifiedIdentity = { uid: string; email: string };
 
-/** Verifies the Firebase ID token on the server — never trusts a client uid. */
+/** Verifies the Firebase ID token on the server — no client uid is trusted. */
 export async function verifyRequestToken(request: Request): Promise<VerifiedIdentity> {
   const header = request.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7, header.length).trim() : "";
   if (!token) throw new SubscriptionError("Authentication required.", 401);
   try {
     return await verifyIdToken(token);
-  } catch (error) {
-    if (error instanceof SubscriptionError) throw error;
+  } catch {
     throw new SubscriptionError("Invalid authentication token.", 401);
   }
 }
@@ -65,9 +54,8 @@ export async function getSubscriptionRecord(uid: string): Promise<SubscriptionRe
 type TrialClaim = {
   emailHash: string;
   workspaceId: string;
-  kind: "trial" | "grandfathered";
-  trialStartedAt: FirestoreTime | null;
-  trialEndsAt: FirestoreTime | null;
+  trialStartedAt: FirestoreTime;
+  trialEndsAt: FirestoreTime;
   createdAt: FirestoreTime;
 };
 
@@ -79,11 +67,11 @@ function time(value: unknown): Date | null {
 }
 
 /**
- * Creates the single canonical subscription record for a workspace.
- * Writes are performed with Firebase Admin inside a transaction so clients
- * cannot forge a trial, a plan, a status or a timestamp.
+ * Provisions a 14-day trial for a genuinely new workspace in one Admin
+ * transaction. Existing workspaces are never given a new trial; their missing
+ * record is handled by the grandfathering policy in the entitlement engine.
  */
-export async function ensureSubscription(identity: VerifiedIdentity): Promise<SubscriptionRecord | null> {
+export async function ensureTrialForNewWorkspace(identity: VerifiedIdentity): Promise<SubscriptionRecord | null> {
   const db = adminDb();
   const workspaceRef = db.collection("workspaces").doc(identity.uid);
   const workspace = await workspaceRef.get();
@@ -95,120 +83,74 @@ export async function ensureSubscription(identity: VerifiedIdentity): Promise<Su
   const workspaceCreatedAt = workspaceCreated && typeof (workspaceCreated as FirestoreTime).toDate === "function"
     ? (workspaceCreated as FirestoreTime).toDate()
     : null;
+  const isNewWorkspace = Boolean(
+    workspaceCreatedAt && Date.now() - workspaceCreatedAt.getTime() <= NEW_WORKSPACE_WINDOW_MS
+  );
+  if (!isNewWorkspace) {
+    // Legacy workspace: preserve access, do not write a subscription record.
+    return null;
+  }
 
   const emailHash = createHash("sha256").update(identity.email).digest("hex");
   const claimRef = db.collection("trialClaims").doc(emailHash);
   const ref = subscriptionRef(identity.uid);
 
-  const result = await db.runTransaction(async (transaction) => {
-    const [existing, claimSnap] = await Promise.all([
-      transaction.get(ref),
-      transaction.get(claimRef),
-    ]);
+  return db.runTransaction(async (transaction) => {
+    const [existing, claimSnap] = await Promise.all([transaction.get(ref), transaction.get(claimRef)]);
     const existingSubscription = await readSubscription(existing);
     if (existingSubscription) return existingSubscription;
 
     const now = new Date();
     const claim = claimSnap.exists ? (claimSnap.data() as TrialClaim) : null;
-    // The workspace timestamp is written with Firestore serverTimestamp() at
-    // registration, so this check never depends on a client clock.
-    const isNewWorkspace = Boolean(
-      workspaceCreatedAt && now.getTime() - workspaceCreatedAt.getTime() <= NEW_ACCOUNT_WINDOW_MS
-    );
-
-    let planId: SubscriptionRecord["planId"] = "starter";
-    let status: SubscriptionRecord["status"] = "grandfathered";
-    let source: SubscriptionSource = "phase10_grandfathered";
-    let trialStart: Date | null = null;
-    let trialEnd: Date | null = null;
-    let claimKind: TrialClaim["kind"] = "grandfathered";
-
-    if (claim) {
-      source = "phase10_recovery";
-      claimKind = claim.kind;
-      trialStart = time(claim.trialStartedAt);
-      trialEnd = time(claim.trialEndsAt);
-      if (claim.kind === "trial" && trialEnd && trialEnd.getTime() > now.getTime()) {
-        planId = "trial";
-        status = "trialing";
-      } else if (claim.kind === "trial") {
-        planId = "trial";
-        status = "expired";
-      } else {
-        planId = "starter";
-        status = "grandfathered";
-      }
-    } else if (isNewWorkspace) {
-      planId = "trial";
-      status = "trialing";
-      source = "phase10_trial";
-      claimKind = "trial";
-      // Absolute server timestamps only. No client clock is consulted.
-      trialStart = now;
-      trialEnd = new Date(now.getTime() + TRIAL_DURATION_DAYS * 86_400_000);
-    }
+    const trialStart = claim ? time(claim.trialStartedAt) ?? now : now;
+    const trialEnd = claim
+      ? time(claim.trialEndsAt) ?? new Date(trialStart.getTime() + TRIAL_DURATION_DAYS * 86_400_000)
+      : new Date(now.getTime() + TRIAL_DURATION_DAYS * 86_400_000);
+    const status = trialEnd.getTime() > now.getTime() ? "trialing" : "expired";
 
     const record: SubscriptionDocument = {
       subscriptionId: `sub_${identity.uid}_${now.getTime()}`,
       workspaceId: identity.uid,
-      planId,
+      plan: "trial",
       status,
-      billingCycle: "monthly",
-      trialStartedAt: trialStart ? Timestamp.fromDate(trialStart) : null,
-      trialEndsAt: trialEnd ? Timestamp.fromDate(trialEnd) : null,
-      currentPeriodStart: Timestamp.fromDate(now),
-      currentPeriodEnd: trialEnd
-        ? Timestamp.fromDate(trialEnd)
-        : Timestamp.fromDate(new Date(now.getTime() + 30 * 86_400_000)),
+      trialStartedAt: Timestamp.fromDate(trialStart),
+      trialEndsAt: Timestamp.fromDate(trialEnd),
+      currentPeriodStartedAt: Timestamp.fromDate(trialStart),
+      currentPeriodEndsAt: Timestamp.fromDate(trialEnd),
       createdAt: FieldValue.serverTimestamp() as unknown as FirestoreTime,
       updatedAt: FieldValue.serverTimestamp() as unknown as FirestoreTime,
+      cancelAtPeriodEnd: false,
       cancelledAt: null,
-      gracePeriodEndsAt: null,
-      source,
-      metadata: {
-        phase: "10.1",
-        trialDays: TRIAL_DURATION_DAYS,
-        workspaceAgeSeconds: workspaceCreatedAt
-          ? Math.round((now.getTime() - workspaceCreatedAt.getTime()) / 1000)
-          : null,
-      },
+      provider: null,
+      providerCustomerId: null,
+      providerSubscriptionId: null,
     };
     transaction.set(ref, record);
     if (!claim) {
-      const newClaim: TrialClaim = {
+      transaction.set(claimRef, {
         emailHash,
         workspaceId: identity.uid,
-        kind: claimKind,
-        trialStartedAt: trialStart ? Timestamp.fromDate(trialStart) : null,
-        trialEndsAt: trialEnd ? Timestamp.fromDate(trialEnd) : null,
-        createdAt: FieldValue.serverTimestamp() as unknown as FirestoreTime,
-      };
-      transaction.set(claimRef, newClaim);
+        trialStartedAt: Timestamp.fromDate(trialStart),
+        trialEndsAt: Timestamp.fromDate(trialEnd),
+        createdAt: FieldValue.serverTimestamp(),
+      });
     }
     return parseSubscription(record, ref.id);
   });
-
-  return result;
 }
-
-export type SubscriptionState = {
-  subscription: ReturnType<typeof serializeSubscription>;
-  entitlement: EntitlementSnapshot;
-  usage: ReturnType<typeof serializeUsage>;
-};
 
 function serializeSubscription(record: SubscriptionRecord | null) {
   if (!record) return null;
   return {
     ...record,
+    billingInterval: BILLING_INTERVAL,
     trialStartedAt: record.trialStartedAt?.toISOString() ?? null,
     trialEndsAt: record.trialEndsAt?.toISOString() ?? null,
-    currentPeriodStart: record.currentPeriodStart?.toISOString() ?? null,
-    currentPeriodEnd: record.currentPeriodEnd?.toISOString() ?? null,
+    currentPeriodStartedAt: record.currentPeriodStartedAt.toISOString(),
+    currentPeriodEndsAt: record.currentPeriodEndsAt.toISOString(),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     cancelledAt: record.cancelledAt?.toISOString() ?? null,
-    gracePeriodEndsAt: record.gracePeriodEndsAt?.toISOString() ?? null,
   };
 }
 
@@ -221,7 +163,7 @@ function serializeUsage(usage: UsageSnapshot) {
   };
 }
 
-export async function getSubscriptionState(identity: VerifiedIdentity): Promise<SubscriptionState> {
+export async function getSubscriptionState(identity: VerifiedIdentity) {
   const subscription = await getSubscriptionRecord(identity.uid);
   const entitlement = evaluateEntitlement(subscription);
   const usage = await measureWorkspaceUsage(adminDb(), identity.uid);
@@ -232,19 +174,19 @@ export async function getSubscriptionState(identity: VerifiedIdentity): Promise<
   };
 }
 
-/**
- * Authoritative server-side gate for privileged operations.
- * Callers must use this result; a hidden UI control is never an enforcement.
- */
+/** Authoritative server-side gate for protected operations. */
 export async function requireEntitlement(
   identity: VerifiedIdentity,
-  feature: FeatureKey,
-  usage?: UsageSnapshot
-): Promise<{ entitlement: EntitlementSnapshot; usage: UsageSnapshot }> {
+  feature: FeatureKey
+): Promise<{ entitlement: EntitlementSnapshot }> {
   const subscription = await getSubscriptionRecord(identity.uid);
   const entitlement = evaluateEntitlement(subscription);
-  const currentUsage = usage ?? (await measureWorkspaceUsage(adminDb(), identity.uid));
-  const decision = authorizeOperation(entitlement, feature, currentUsage);
+  const decision = authorizeAccess(entitlement, feature);
   if (!decision.allowed) throw new SubscriptionError(decision.reason, 403);
-  return { entitlement, usage: currentUsage };
+  return { entitlement };
+}
+
+/** Owner-requested cancellation scheduling; never changes status to active. */
+export async function requestCancellation(identity: VerifiedIdentity): Promise<boolean> {
+  return scheduleCancellationAtPeriodEnd(adminDb(), identity.uid);
 }

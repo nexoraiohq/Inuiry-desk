@@ -1,15 +1,16 @@
 /**
- * Centralized commercial catalog. Pricing and feature flags live here only —
- * business logic never hardcodes a price or a limit.
+ * Centralized commercial catalog. Prices, trial duration, features and
+ * billing interval live here only — never scattered through components.
  *
- * These values are public display configuration. Privileged internal
- * configuration does not exist here; trial creation and status changes are
- * performed by Firebase Admin in trusted server code.
+ * Placeholder provider fields stay null in Phase 10.1. This module is public
+ * display configuration; no privileged internal values are stored here.
  */
-import type { BillingCycle, PlanId } from "@/lib/subscription/types";
+import type { BillingInterval, Plan } from "./types";
 
 export const TRIAL_DURATION_DAYS = 14;
 export const BILLING_CURRENCY = "KES";
+export const BILLING_INTERVAL: BillingInterval = "monthly";
+export const STARTER_MONTHLY_PRICE = 1500;
 
 export const FEATURE_KEYS = [
   "inquiries",
@@ -22,83 +23,43 @@ export const FEATURE_KEYS = [
 ] as const;
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
 
-export type PlanLimits = {
-  /** null means no limit defined for this plan. */
-  activeInquiries: number | null;
-  followUps: number | null;
-};
-
-export type PlanDefinition = {
-  id: PlanId;
+export type PlanCatalogEntry = {
+  plan: Plan;
   name: string;
   description: string;
-  /** Amount in the smallest configured currency unit. Starter = KES 1,500. */
+  /** Monthly amount in KES. Trial is zero. */
   monthlyPrice: number;
-  billingCycle: BillingCycle;
-  trialDays: number;
+  billingInterval: BillingInterval;
   features: readonly FeatureKey[];
-  limits: PlanLimits;
-  /** Growth is catalogued but not commercially released yet. */
-  available: boolean;
-  sortOrder: number;
 };
 
-export const PLANS: Readonly<Record<PlanId, PlanDefinition>> = {
+export const PLAN_CATALOG: Readonly<Record<Plan, PlanCatalogEntry>> = {
   trial: {
-    id: "trial",
+    plan: "trial",
     name: "Free trial",
-    description: "Full access during the 14-day evaluation period.",
+    description: "Full Starter feature set during the 14-day evaluation period.",
     monthlyPrice: 0,
-    billingCycle: "monthly",
-    trialDays: TRIAL_DURATION_DAYS,
+    billingInterval: BILLING_INTERVAL,
     features: FEATURE_KEYS,
-    // Commercial rationale: a single workspace can reasonably manage up to
-    // 100 active inquiries and 200 follow-ups during evaluation. These are
-    // validation figures, not a proven revenue model, and are configurable here.
-    limits: { activeInquiries: 100, followUps: 200 },
-    available: true,
-    sortOrder: 0,
   },
   starter: {
-    id: "starter",
+    plan: "starter",
     name: "Starter",
-    description: "The initial commercial hypothesis for a single workspace.",
-    monthlyPrice: 1500,
-    billingCycle: "monthly",
-    trialDays: TRIAL_DURATION_DAYS,
+    description: "The initial monthly plan for a single workspace.",
+    monthlyPrice: STARTER_MONTHLY_PRICE,
+    billingInterval: BILLING_INTERVAL,
     features: FEATURE_KEYS,
-    limits: { activeInquiries: 100, followUps: 200 },
-    available: true,
-    sortOrder: 1,
-  },
-  growth: {
-    id: "growth",
-    name: "Growth",
-    description: "Reserved for a future release. Not yet available.",
-    monthlyPrice: 0,
-    billingCycle: "monthly",
-    trialDays: 0,
-    features: [],
-    limits: { activeInquiries: 0, followUps: 0 },
-    available: false,
-    sortOrder: 2,
   },
 };
 
-export const PLAN_ORDER: readonly PlanId[] = ["trial", "starter", "growth"];
+export const PLAN_ORDER: readonly Plan[] = ["trial", "starter"];
 
-export function getPlan(id: PlanId): PlanDefinition {
-  return PLANS[id];
+export function getPlan(plan: Plan): PlanCatalogEntry {
+  return PLAN_CATALOG[plan];
 }
 
-/** Plans safe to display as purchasable options. */
-export function availablePlans(): PlanDefinition[] {
-  return PLAN_ORDER.map((id) => PLANS[id])
-    .filter((plan) => plan.available && plan.id !== "trial")
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
-export function formatPrice(plan: PlanDefinition): string {
-  if (plan.monthlyPrice === 0) return "Included";
-  return `${BILLING_CURRENCY} ${plan.monthlyPrice.toLocaleString()}/month`;
+export function formatPrice(plan: Plan): string {
+  const entry = getPlan(plan);
+  if (entry.monthlyPrice === 0) return "No payment required";
+  return `${BILLING_CURRENCY} ${entry.monthlyPrice.toLocaleString()}/${entry.billingInterval}`;
 }

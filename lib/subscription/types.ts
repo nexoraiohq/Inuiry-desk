@@ -1,67 +1,63 @@
-/** Subscription domain types. Client-safe: no server-only imports. */
-
+/**
+ * Subscription domain types. Client-safe: no server-only imports and no
+ * Firebase Admin dependency.
+ *
+ * Plan and status values are authoritative server data; clients never supply
+ * them. Grandfathering is a server policy for a *missing* record, not a
+ * client-writable status.
+ */
 export type FirestoreTime = { toDate: () => Date };
+
+export const PLANS = ["trial", "starter"] as const;
+export type Plan = (typeof PLANS)[number];
 
 export const SUBSCRIPTION_STATUSES = [
   "trialing",
   "active",
-  "past_due",
-  "cancelled",
   "expired",
-  "suspended",
-  "grandfathered",
+  "cancelled",
+  "past_due",
 ] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
-export const PLAN_IDS = ["trial", "starter", "growth"] as const;
-export type PlanId = (typeof PLAN_IDS)[number];
+export const BILLING_INTERVALS = ["monthly"] as const;
+export type BillingInterval = (typeof BILLING_INTERVALS)[number];
 
-export const BILLING_CYCLES = ["monthly", "annual"] as const;
-export type BillingCycle = (typeof BILLING_CYCLES)[number];
-
-export const SUBSCRIPTION_SOURCES = [
-  "phase10_trial",
-  "phase10_grandfathered",
-  "phase10_recovery",
-] as const;
-export type SubscriptionSource = (typeof SUBSCRIPTION_SOURCES)[number];
-
-/** Privileged fields are written only by Firebase Admin. Clients cannot write them. */
-export type SubscriptionDocument = {
-  subscriptionId: string;
-  workspaceId: string;
-  planId: PlanId;
-  status: SubscriptionStatus;
-  billingCycle: BillingCycle;
-  trialStartedAt: FirestoreTime | null;
-  trialEndsAt: FirestoreTime | null;
-  currentPeriodStart: FirestoreTime | null;
-  currentPeriodEnd: FirestoreTime | null;
-  createdAt: FirestoreTime;
-  updatedAt: FirestoreTime;
-  cancelledAt: FirestoreTime | null;
-  gracePeriodEndsAt: FirestoreTime | null;
-  source: SubscriptionSource;
-  metadata: Record<string, string | number | boolean | null> | null;
+/** Nullable until a payment provider is integrated in a later phase. */
+export type ProviderFields = {
+  provider: string | null;
+  providerCustomerId: string | null;
+  providerSubscriptionId: string | null;
 };
 
-/** Application-facing shape with absolute Dates, safe for display logic. */
-export type SubscriptionRecord = {
+export type SubscriptionDocument = ProviderFields & {
   subscriptionId: string;
   workspaceId: string;
-  planId: PlanId;
+  plan: Plan;
   status: SubscriptionStatus;
-  billingCycle: BillingCycle;
+  trialStartedAt: FirestoreTime | null;
+  trialEndsAt: FirestoreTime | null;
+  currentPeriodStartedAt: FirestoreTime;
+  currentPeriodEndsAt: FirestoreTime;
+  createdAt: FirestoreTime;
+  updatedAt: FirestoreTime;
+  cancelAtPeriodEnd: boolean;
+  cancelledAt: FirestoreTime | null;
+};
+
+export type SubscriptionRecord = ProviderFields & {
+  subscriptionId: string;
+  workspaceId: string;
+  plan: Plan;
+  status: SubscriptionStatus;
   trialStartedAt: Date | null;
   trialEndsAt: Date | null;
-  currentPeriodStart: Date | null;
-  currentPeriodEnd: Date | null;
+  currentPeriodStartedAt: Date;
+  currentPeriodEndsAt: Date;
   createdAt: Date;
   updatedAt: Date;
+  cancelAtPeriodEnd: boolean;
   cancelledAt: Date | null;
-  gracePeriodEndsAt: Date | null;
-  source: SubscriptionSource;
-  metadata: Record<string, string | number | boolean | null> | null;
 };
 
 function asDate(value: unknown): Date | null {
@@ -71,25 +67,52 @@ function asDate(value: unknown): Date | null {
   return null;
 }
 
+function asRequiredDate(value: unknown, fallback: Date): Date {
+  return asDate(value) ?? fallback;
+}
+
 export function parseSubscription(
   data: SubscriptionDocument,
   fallbackId = "current"
 ): SubscriptionRecord {
+  const epoch = new Date(0);
   return {
     subscriptionId: String(data.subscriptionId ?? fallbackId),
     workspaceId: String(data.workspaceId ?? ""),
-    planId: data.planId,
+    plan: data.plan,
     status: data.status,
-    billingCycle: data.billingCycle,
     trialStartedAt: asDate(data.trialStartedAt),
     trialEndsAt: asDate(data.trialEndsAt),
-    currentPeriodStart: asDate(data.currentPeriodStart),
-    currentPeriodEnd: asDate(data.currentPeriodEnd),
-    createdAt: asDate(data.createdAt) ?? new Date(0),
-    updatedAt: asDate(data.updatedAt) ?? new Date(0),
+    currentPeriodStartedAt: asRequiredDate(data.currentPeriodStartedAt, epoch),
+    currentPeriodEndsAt: asRequiredDate(data.currentPeriodEndsAt, epoch),
+    createdAt: asRequiredDate(data.createdAt, epoch),
+    updatedAt: asRequiredDate(data.updatedAt, epoch),
+    cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
     cancelledAt: asDate(data.cancelledAt),
-    gracePeriodEndsAt: asDate(data.gracePeriodEndsAt),
-    source: data.source,
-    metadata: data.metadata ?? null,
+    provider: data.provider ?? null,
+    providerCustomerId: data.providerCustomerId ?? null,
+    providerSubscriptionId: data.providerSubscriptionId ?? null,
   };
+}
+
+/** Server-side validation of any subscription record before a write. */
+export function isValidPlan(value: unknown): value is Plan {
+  return typeof value === "string" && (PLANS as readonly string[]).includes(value);
+}
+
+export function isValidStatus(value: unknown): value is SubscriptionStatus {
+  return typeof value === "string" && (SUBSCRIPTION_STATUSES as readonly string[]).includes(value);
+}
+
+export function isValidSubscription(data: unknown): data is SubscriptionDocument {
+  if (!data || typeof data !== "object") return false;
+  const value = data as Partial<SubscriptionDocument>;
+  return (
+    typeof value.subscriptionId === "string" &&
+    typeof value.workspaceId === "string" &&
+    isValidPlan(value.plan) &&
+    isValidStatus(value.status) &&
+    typeof value.cancelAtPeriodEnd === "boolean" &&
+    Boolean(value.currentPeriodStartedAt && value.currentPeriodEndsAt && value.createdAt && value.updatedAt)
+  );
 }

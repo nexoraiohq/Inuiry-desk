@@ -1,154 +1,122 @@
 /**
  * Single authoritative entitlement evaluation layer.
- * Pure functions — no Firestore access, safe on client and server.
- * All privileged decisions must call these functions; no component may
- * implement its own plan check.
+ * Pure functions — usable from server components, server actions, API routes
+ * and other protected server operations. No Firestore access, no client truth.
  */
-import { getPlan, type FeatureKey, type PlanDefinition, type PlanLimits } from "@/lib/subscription/catalog";
-import type { SubscriptionRecord, SubscriptionStatus } from "@/lib/subscription/types";
+import { getPlan, type FeatureKey } from "./catalog";
+import type { Plan, SubscriptionRecord, SubscriptionStatus } from "./types";
 
-export type UsageSnapshotInput = {
-  totalInquiries: number;
-  activeInquiries: number;
-  followUps: number;
-};
+export type EffectiveStatus = SubscriptionStatus | "grandfathered";
 
 export type EntitlementSnapshot = {
-  planId: SubscriptionRecord["planId"];
-  status: SubscriptionStatus;
-  source: SubscriptionRecord["source"];
-  plan: PlanDefinition;
+  status: EffectiveStatus;
+  plan: Plan;
   features: readonly FeatureKey[];
-  limits: PlanLimits;
-  /** Whether privileged write operations are currently allowed. */
-  canWrite: boolean;
-  /** Human-readable, non-sensitive explanation of the current state. */
+  /** Access to paid product functionality. */
+  canAccessProduct: boolean;
   reason: string;
   trialStartedAt: Date | null;
   trialEndsAt: Date | null;
-  gracePeriodEndsAt: Date | null;
+  currentPeriodStartedAt: Date | null;
+  currentPeriodEndsAt: Date | null;
+  cancelledAt: Date | null;
+  cancelAtPeriodEnd: boolean;
   daysRemaining: number | null;
   grandfathered: boolean;
 };
 
-const WRITE_ALLOWED: readonly SubscriptionStatus[] = ["active", "grandfathered"];
-
-/**
- * A workspace with no subscription record is treated as grandfathered. This
- * is deliberate: pre-Phase-10 workspaces must never be classified as expired.
- */
-export function evaluateEntitlement(
-  subscription: SubscriptionRecord | null,
-  now: Date = new Date()
-): EntitlementSnapshot {
-  if (!subscription) {
-    const plan = getPlan("starter");
-    return {
-      planId: "starter",
-      status: "grandfathered",
-      source: "phase10_grandfathered",
-      plan,
-      features: plan.features,
-      limits: { activeInquiries: null, followUps: null },
-      canWrite: true,
-      reason: "Existing workspace — access preserved.",
-      trialStartedAt: null,
-      trialEndsAt: null,
-      gracePeriodEndsAt: null,
-      daysRemaining: null,
-      grandfathered: true,
-    };
-  }
-
-  const plan = getPlan(subscription.planId);
-  const base = {
-    planId: subscription.planId,
-    status: subscription.status,
-    source: subscription.source,
-    plan,
-    features: plan.features,
-    limits: plan.limits,
-    trialStartedAt: subscription.trialStartedAt,
-    trialEndsAt: subscription.trialEndsAt,
-    gracePeriodEndsAt: subscription.gracePeriodEndsAt,
-    grandfathered: subscription.status === "grandfathered",
-    daysRemaining: daysFrom(now, subscription.trialEndsAt),
-  };
-
-  if (WRITE_ALLOWED.includes(subscription.status)) {
-    // Grandfathered workspaces keep unlimited access by design; no existing
-    // customer is blocked by a newly introduced numerical limit.
-    if (subscription.status === "grandfathered") {
-      return { ...base, limits: { activeInquiries: null, followUps: null }, canWrite: true, reason: "Grandfathered access." };
-    }
-    return { ...base, canWrite: true, reason: "Subscription active." };
-  }
-
-  if (subscription.status === "trialing") {
-    const ends = subscription.trialEndsAt?.getTime() ?? 0;
-    if (ends > now.getTime()) {
-      return { ...base, canWrite: true, reason: "Free trial in progress." };
-    }
-    return { ...base, status: "expired", canWrite: false, reason: "Free trial has ended." };
-  }
-
-  if (subscription.status === "past_due") {
-    const grace = subscription.gracePeriodEndsAt?.getTime() ?? 0;
-    if (grace > now.getTime()) {
-      return { ...base, canWrite: true, reason: "Payment is past due; grace period is active." };
-    }
-    return { ...base, canWrite: false, reason: "Grace period has ended." };
-  }
-
-  const reasons: Record<string, string> = {
-    cancelled: "Subscription cancelled.",
-    expired: "Subscription expired.",
-    suspended: "Subscription suspended.",
-  };
-  return {
-    ...base,
-    canWrite: false,
-    reason: reasons[subscription.status] ?? "Subscription is not active.",
-  };
-}
+const PAID_FEATURES = getPlan("starter").features;
 
 function daysFrom(now: Date, end: Date | null): number | null {
   if (!end) return null;
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86_400_000));
 }
 
-export function canUseFeature(entitlement: EntitlementSnapshot, feature: FeatureKey): boolean {
-  return entitlement.features.includes(feature);
+function snapshot(
+  record: SubscriptionRecord | null,
+  status: EffectiveStatus,
+  canAccessProduct: boolean,
+  reason: string,
+  now: Date
+): EntitlementSnapshot {
+  return {
+    status,
+    plan: record?.plan ?? "starter",
+    features: canAccessProduct ? PAID_FEATURES : [],
+    canAccessProduct,
+    reason,
+    trialStartedAt: record?.trialStartedAt ?? null,
+    trialEndsAt: record?.trialEndsAt ?? null,
+    currentPeriodStartedAt: record?.currentPeriodStartedAt ?? null,
+    currentPeriodEndsAt: record?.currentPeriodEndsAt ?? null,
+    cancelledAt: record?.cancelledAt ?? null,
+    cancelAtPeriodEnd: record?.cancelAtPeriodEnd ?? false,
+    daysRemaining: daysFrom(now, record?.trialEndsAt ?? record?.currentPeriodEndsAt ?? null),
+    grandfathered: status === "grandfathered",
+  };
 }
 
 /**
- * Usage limits are adapted for grandfathered workspaces (null = unlimited).
- * Returns true when all defined limits are respected.
+ * A missing subscription record is an existing workspace and is grandfathered
+ * by trusted server policy. It is never treated as expired.
  */
-export function withinUsageLimits(
-  entitlement: EntitlementSnapshot,
-  usage: UsageSnapshotInput
-): boolean {
-  const { activeInquiries, followUps } = entitlement.limits;
-  if (activeInquiries !== null && usage.activeInquiries > activeInquiries) return false;
-  if (followUps !== null && usage.followUps > followUps) return false;
-  return true;
+export function evaluateEntitlement(
+  subscription: SubscriptionRecord | null,
+  now: Date = new Date()
+): EntitlementSnapshot {
+  if (!subscription) {
+    return snapshot(null, "grandfathered", true, "Existing workspace — access preserved.", now);
+  }
+
+  const periodEnd = subscription.currentPeriodEndsAt.getTime();
+  const trialEnd = subscription.trialEndsAt?.getTime() ?? 0;
+
+  switch (subscription.status) {
+    case "trialing":
+      if (trialEnd > now.getTime()) {
+        return snapshot(subscription, "trialing", true, "Free trial in progress.", now);
+      }
+      return snapshot(subscription, "expired", false, "Free trial has ended.", now);
+
+    case "active":
+      if (periodEnd > now.getTime()) {
+        return snapshot(subscription, "active", true, "Starter subscription active.", now);
+      }
+      return snapshot(subscription, "expired", false, "Subscription period has ended.", now);
+
+    case "past_due":
+      // Policy: a past-due subscription keeps Starter access until the end of
+      // the paid period already granted, then expires. No grace is invented.
+      if (periodEnd > now.getTime()) {
+        return snapshot(subscription, "past_due", true, "Payment past due; access continues to period end.", now);
+      }
+      return snapshot(subscription, "expired", false, "Past-due period has ended.", now);
+
+    case "cancelled":
+      if (subscription.cancelAtPeriodEnd && subscription.cancelledAt && periodEnd > now.getTime()) {
+        return snapshot(subscription, "cancelled", true, "Cancelled at period end; access continues until then.", now);
+      }
+      return snapshot(subscription, "cancelled", false, "Subscription cancelled.", now);
+
+    case "expired":
+      return snapshot(subscription, "expired", false, "Subscription expired.", now);
+
+    default:
+      return snapshot(subscription, "expired", false, "Subscription is not active.", now);
+  }
 }
 
-/** Single decision used by server callers before a privileged operation. */
-export function authorizeOperation(
+export function canUseFeature(entitlement: EntitlementSnapshot, feature: FeatureKey): boolean {
+  return entitlement.canAccessProduct && entitlement.features.includes(feature);
+}
+
+/** Single decision for server callers; never trust hidden UI controls. */
+export function authorizeAccess(
   entitlement: EntitlementSnapshot,
-  feature: FeatureKey,
-  usage: UsageSnapshotInput
+  feature: FeatureKey
 ): { allowed: boolean; reason: string } {
   if (!canUseFeature(entitlement, feature)) {
-    return { allowed: false, reason: `Plan does not include ${feature}.` };
-  }
-  if (!entitlement.canWrite) {
     return { allowed: false, reason: entitlement.reason };
-  }
-  if (!withinUsageLimits(entitlement, usage)) {
-    return { allowed: false, reason: "Usage limit reached for this plan." };
   }
   return { allowed: true, reason: "Allowed." };
 }
