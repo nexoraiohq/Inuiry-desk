@@ -2,6 +2,7 @@ import {
   collection,
   getDocs,
   limit,
+  orderBy,
   query,
   Timestamp,
   where,
@@ -49,20 +50,47 @@ async function fetchWindow(
       reference,
       where(field, ">=", Timestamp.fromDate(range.start)),
       where(field, "<", Timestamp.fromDate(range.end)),
+      orderBy(field, "desc"),
       limit(REPORT_LIMIT)
     )
   );
 }
 
 function trend(counts: Map<string, number>, range: DateRange): TrendPoint[] {
-  return eachDay(range).map((date) => {
-    const key = dayKey(date);
-    return {
-      key,
+  const spanDays = Math.ceil((range.end.getTime() - range.start.getTime()) / 86_400_000);
+
+  // Short ranges keep a continuous daily axis.
+  if (spanDays <= 120) {
+    return eachDay(range).map((date) => ({
+      key: dayKey(date),
       label: new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date),
-      value: counts.get(key) ?? 0,
-    };
-  });
+      value: counts.get(dayKey(date)) ?? 0,
+    }));
+  }
+
+  // Long ranges (e.g. All time) bucket by month — or by year beyond a decade —
+  // using only days that actually have data. This avoids allocating and
+  // rendering tens of thousands of empty daily bars, which froze the page.
+  const byYear = spanDays > 3_660;
+  const buckets = new Map<string, TrendPoint>();
+  for (const [day, value] of counts) {
+    const [year, month] = day.split("-");
+    const key = byYear ? year : `${year}-${month}`;
+    let point = buckets.get(key);
+    if (!point) {
+      point = {
+        key,
+        label: byYear
+          ? year
+          : new Intl.DateTimeFormat(undefined, { month: "short", year: "2-digit" })
+              .format(new Date(Number(year), Number(month) - 1, 1)),
+        value: 0,
+      };
+      buckets.set(key, point);
+    }
+    point.value += value;
+  }
+  return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 function bump(counts: Map<string, number>, key: string) {

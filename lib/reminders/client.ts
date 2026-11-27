@@ -141,6 +141,7 @@ export async function deleteAllReminders(uid: string): Promise<number> {
     });
     batch.update(doc(firestore(), "workspaces", uid), {
       notificationClearedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
     await batch.commit();
     return snapshot.size;

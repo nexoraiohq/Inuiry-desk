@@ -1,7 +1,7 @@
 import { doc, getDoc, runTransaction, serverTimestamp, Timestamp, type Firestore } from "firebase/firestore";
 import { firestore } from "@/lib/dashboard/service";
 import { groupFor } from "@/lib/follow-ups/date";
-import { dayKeyInZone } from "@/lib/datetime/zone";
+import { dayKeyInZone, startOfDayInZone } from "@/lib/datetime/zone";
 import type { FollowUpRecord, InquiryRecord } from "@/lib/dashboard/types";
 
 type Candidate = {
@@ -12,6 +12,8 @@ type Candidate = {
   inquiryId: string;
   followUpId: string;
   scheduledFor: Date;
+  /** When the underlying condition began — used to honour a prior delete-all. */
+  conditionAt: Date;
   deduplicationKey: string;
 };
 
@@ -43,6 +45,9 @@ export async function syncDerivedNotifications(
       inquiryId: item.inquiryId,
       followUpId: item.id,
       scheduledFor: item.dueAt,
+      // A follow-up was already "due today" from the start of its due day, so
+      // clearing notifications today must not recreate it later today.
+      conditionAt: startOfDayInZone(item.dueAt),
       deduplicationKey: `${item.id}:${type}:${today}`,
     });
   }
@@ -56,13 +61,14 @@ export async function syncDerivedNotifications(
       inquiryId: item.id,
       followUpId: "",
       scheduledFor: item.createdAt,
+      conditionAt: item.createdAt,
       deduplicationKey: `${item.id}:new_inquiry`,
     });
   }
 
   let created = 0;
   for (const candidate of candidates.slice(0, 30)) {
-    if (clearedAt && candidate.scheduledFor.getTime() <= clearedAt.getTime()) continue;
+    if (clearedAt && candidate.conditionAt.getTime() <= clearedAt.getTime()) continue;
     const ref = doc(db, "workspaces", uid, "notifications", candidate.id);
     const didCreate = await runTransaction(db, async (transaction) => {
       if ((await transaction.get(ref)).exists()) return false;

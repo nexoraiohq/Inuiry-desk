@@ -13,7 +13,6 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { Notice } from "@/components/ui/notice";
 import { formatRelative } from "@/lib/dashboard/format";
-import { groupFor } from "@/lib/follow-ups/date";
 import { syncDerivedNotifications } from "@/lib/reminders/derived";
 import { listFollowUps } from "@/lib/follow-ups/service";
 import { listInquiries } from "@/lib/inquiries/service";
@@ -26,13 +25,9 @@ import {
 } from "@/lib/reminders/client";
 import type { ReminderNotification } from "@/lib/reminders/types";
 
-type Summary = { overdue: number; today: number; newInquiries: number };
-const EMPTY: Summary = { overdue: 0, today: 0, newInquiries: 0 };
-
-/** Live workspace alerts plus persisted reminder notifications. */
+/** Database-backed workspace notifications, updated in realtime. */
 export function NotificationsMenu() {
   const { user, status } = useAuth();
-  const [summary, setSummary] = useState<Summary>(EMPTY);
   const [reminders, setReminders] = useState<ReminderNotification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,12 +45,6 @@ export function NotificationsMenu() {
         listInquiries(user.uid),
       ]);
       await syncDerivedNotifications(user.uid, followUps, inquiries);
-      const now = new Date();
-      setSummary({
-        overdue: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "overdue").length,
-        today: followUps.filter((item) => groupFor(item.status, item.dueAt, now) === "today").length,
-        newInquiries: inquiries.filter((item) => !item.archived && item.status === "new").length,
-      });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not refresh notifications.");
     } finally {
@@ -98,12 +87,7 @@ export function NotificationsMenu() {
   }, [open]);
 
   const unread = reminders.filter((item) => item.readAt === null);
-  const showDerivedFollowUps = reminders.length === 0;
-  const showDerivedNewInquiries = reminders.length === 0;
-  const derivedCount =
-    (showDerivedFollowUps ? summary.overdue + summary.today : 0) +
-    (showDerivedNewInquiries ? summary.newInquiries : 0);
-  const total = unread.length + derivedCount;
+  const total = unread.length;
 
   function notificationIcon(type: string) {
     if (type === "new_inquiry") return Inbox;
@@ -181,7 +165,7 @@ export function NotificationsMenu() {
             </button>
           </div>
 
-          {total === 0 ? (
+          {reminders.length === 0 ? (
             <p className="mt-4 text-[12px] text-muted">Nothing needs attention right now.</p>
           ) : (
             <div className="mt-3 max-h-[60vh] space-y-1.5 overflow-y-auto">
@@ -210,56 +194,35 @@ export function NotificationsMenu() {
                           {formatRelative(item.scheduledFor)}
                         </time>
                       </div>
-                    <div className="flex shrink-0 flex-col gap-1">
-                      {item.readAt === null ? (
+                      <div className="flex shrink-0 flex-col gap-1">
+                        {item.readAt === null ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void run(() => markReminderRead(user!.uid, item.id), "Reminder marked as read.")}
+                            aria-label={`Mark ${item.title} as read`}
+                            title="Mark as read"
+                            className="grid size-7 place-items-center rounded-lg text-muted transition-colors hover:bg-brand-soft hover:text-brand disabled:opacity-40"
+                          >
+                            <Check className="size-3.5" aria-hidden="true" />
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => void run(() => markReminderRead(user!.uid, item.id), "Reminder marked as read.")}
-                          aria-label={`Mark ${item.title} as read`}
-                          title="Mark as read"
-                          className="grid size-7 place-items-center rounded-lg text-muted transition-colors hover:bg-brand-soft hover:text-brand disabled:opacity-40"
+                          onClick={() => void run(() => deleteReminder(user!.uid, item.id), "Reminder deleted.")}
+                          aria-label={`Delete ${item.title}`}
+                          title="Delete"
+                          className="grid size-7 place-items-center rounded-lg text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-40"
                         >
-                          <Check className="size-3.5" aria-hidden="true" />
+                          <Trash2 className="size-3.5" aria-hidden="true" />
                         </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void run(() => deleteReminder(user!.uid, item.id), "Reminder deleted.")}
-                        aria-label={`Delete ${item.title}`}
-                        title="Delete"
-                        className="grid size-7 place-items-center rounded-lg text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-40"
-                      >
-                        <Trash2 className="size-3.5" aria-hidden="true" />
-                      </button>
-                    </div>
+                      </div>
                   </div>
                 </div>
                 );
               })}
 
-              {showDerivedFollowUps && summary.overdue > 0 ? (
-                <Link href="/follow-ups" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
-                  <CalendarClock className="size-4 shrink-0 text-danger" aria-hidden="true" />
-                  <span className="min-w-0 flex-1 text-[12px] text-ink">{summary.overdue} overdue follow-up{summary.overdue === 1 ? "" : "s"}</span>
-                  <span className="text-[11px] text-subtle">View</span>
-                </Link>
-              ) : null}
-              {showDerivedFollowUps && summary.today > 0 ? (
-                <Link href="/follow-ups" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
-                  <CalendarClock className="size-4 shrink-0 text-brand" aria-hidden="true" />
-                  <span className="min-w-0 flex-1 text-[12px] text-ink">{summary.today} follow-up{summary.today === 1 ? "" : "s"} due today</span>
-                  <span className="text-[11px] text-subtle">View</span>
-                </Link>
-              ) : null}
-              {showDerivedNewInquiries && summary.newInquiries > 0 ? (
-                <Link href="/inquiries" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-surface">
-                  <Inbox className="size-4 shrink-0 text-brand" aria-hidden="true" />
-                  <span className="min-w-0 flex-1 text-[12px] text-ink">{summary.newInquiries} new inquiries</span>
-                  <span className="text-[11px] text-subtle">View</span>
-                </Link>
-              ) : null}
             </div>
           )}
         </div>
