@@ -42,7 +42,7 @@ export type SubscriptionDocument = {
   cancelledAt: FirestoreTime | null;
   gracePeriodEndsAt: FirestoreTime | null;
   source: SubscriptionSource;
-  metadata: Record<string, string | number | boolean> | null;
+  metadata: Record<string, string | number | boolean | null> | null;
 };
 
 /** Application-facing shape with absolute Dates, safe for display logic. */
@@ -61,7 +61,7 @@ export type SubscriptionRecord = {
   cancelledAt: Date | null;
   gracePeriodEndsAt: Date | null;
   source: SubscriptionSource;
-  metadata: Record<string, string | number | boolean> | null;
+  metadata: Record<string, string | number | boolean | null> | null;
 };
 
 function asDate(value: unknown): Date | null {

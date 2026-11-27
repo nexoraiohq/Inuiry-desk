@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { FieldValue, Timestamp, type DocumentSnapshot } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/server/firebase-admin";
+import { adminDb, verifyIdToken } from "@/lib/server/firebase-admin";
 import {
   TRIAL_DURATION_DAYS,
   type FeatureKey,
@@ -34,7 +34,6 @@ export class SubscriptionError extends Error {
 export type VerifiedIdentity = {
   uid: string;
   email: string;
-  accountCreatedAt: Date;
 };
 
 /** Verifies the Firebase ID token on the server — never trusts a client uid. */
@@ -43,14 +42,7 @@ export async function verifyRequestToken(request: Request): Promise<VerifiedIden
   const token = header.startsWith("Bearer ") ? header.slice(7, header.length).trim() : "";
   if (!token) throw new SubscriptionError("Authentication required.", 401);
   try {
-    const decoded = await adminAuth().verifyIdToken(token);
-    if (!decoded.email) throw new SubscriptionError("Account email is required.", 400);
-    const user = await adminAuth().getUser(decoded.uid);
-    return {
-      uid: decoded.uid,
-      email: decoded.email.toLowerCase(),
-      accountCreatedAt: new Date(user.metadata.creationTime),
-    };
+    return await verifyIdToken(token);
   } catch (error) {
     if (error instanceof SubscriptionError) throw error;
     throw new SubscriptionError("Invalid authentication token.", 401);
@@ -95,9 +87,14 @@ export async function ensureSubscription(identity: VerifiedIdentity): Promise<Su
   const db = adminDb();
   const workspaceRef = db.collection("workspaces").doc(identity.uid);
   const workspace = await workspaceRef.get();
-  if (!workspace.exists || workspace.data()?.ownerUid !== identity.uid) {
+  const workspaceData = workspace.data() as Record<string, unknown> | undefined;
+  if (!workspace.exists || !workspaceData || workspaceData.ownerUid !== identity.uid) {
     throw new SubscriptionError("Workspace ownership could not be verified.", 403);
   }
+  const workspaceCreated = workspaceData.createdAt;
+  const workspaceCreatedAt = workspaceCreated && typeof (workspaceCreated as FirestoreTime).toDate === "function"
+    ? (workspaceCreated as FirestoreTime).toDate()
+    : null;
 
   const emailHash = createHash("sha256").update(identity.email).digest("hex");
   const claimRef = db.collection("trialClaims").doc(emailHash);
@@ -113,8 +110,11 @@ export async function ensureSubscription(identity: VerifiedIdentity): Promise<Su
 
     const now = new Date();
     const claim = claimSnap.exists ? (claimSnap.data() as TrialClaim) : null;
-    const isNewAccount =
-      now.getTime() - identity.accountCreatedAt.getTime() <= NEW_ACCOUNT_WINDOW_MS;
+    // The workspace timestamp is written with Firestore serverTimestamp() at
+    // registration, so this check never depends on a client clock.
+    const isNewWorkspace = Boolean(
+      workspaceCreatedAt && now.getTime() - workspaceCreatedAt.getTime() <= NEW_ACCOUNT_WINDOW_MS
+    );
 
     let planId: SubscriptionRecord["planId"] = "starter";
     let status: SubscriptionRecord["status"] = "grandfathered";
@@ -138,7 +138,7 @@ export async function ensureSubscription(identity: VerifiedIdentity): Promise<Su
         planId = "starter";
         status = "grandfathered";
       }
-    } else if (isNewAccount) {
+    } else if (isNewWorkspace) {
       planId = "trial";
       status = "trialing";
       source = "phase10_trial";
@@ -168,7 +168,9 @@ export async function ensureSubscription(identity: VerifiedIdentity): Promise<Su
       metadata: {
         phase: "10.1",
         trialDays: TRIAL_DURATION_DAYS,
-        accountAgeSeconds: Math.round((now.getTime() - identity.accountCreatedAt.getTime()) / 1000),
+        workspaceAgeSeconds: workspaceCreatedAt
+          ? Math.round((now.getTime() - workspaceCreatedAt.getTime()) / 1000)
+          : null,
       },
     };
     transaction.set(ref, record);

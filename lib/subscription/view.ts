@@ -17,7 +17,7 @@ export type SubscriptionView = {
   cancelledAt: string | null;
   gracePeriodEndsAt: string | null;
   source: SubscriptionSource;
-  metadata: Record<string, string | number | boolean> | null;
+  metadata: Record<string, string | number | boolean | null> | null;
 };
 
 export type UsageView = {
