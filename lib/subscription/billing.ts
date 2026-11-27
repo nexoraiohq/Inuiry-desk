@@ -130,6 +130,7 @@ export async function createCheckoutSession(
   const summary = checkoutSummary(intent);
   const id = sessionIdFor(workspaceId, input.idempotencyKey);
   const ref = checkouts(workspaceId).doc(id);
+  const created = new Date();
   const session = await db.runTransaction(async (transaction) => {
     const snap = await transaction.get(ref);
     const existing = parseSession(snap);
@@ -148,7 +149,7 @@ export async function createCheckoutSession(
       idempotencyKey: input.idempotencyKey as string,
       reference: null,
       resultStatus: null,
-      createdAt: FieldValue.serverTimestamp() as unknown as FirestoreTime,
+      createdAt: Timestamp.fromDate(created) as unknown as FirestoreTime,
       processedAt: null,
     };
     transaction.set(ref, next);

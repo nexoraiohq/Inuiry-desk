@@ -95,7 +95,9 @@ async function checkout(token, intent, outcome, key, extra = {}) {
 
     const keySuccess = randomUUID();
     const sessionSuccess = await checkout(tokenA, "purchase", "success", keySuccess);
-    results.sessionCreated = sessionSuccess.status === 200 && sessionSuccess.payload?.session?.status === "pending";
+    assert.ok(sessionSuccess.status === 200 && sessionSuccess.payload?.session,
+      `success checkout failed: ${JSON.stringify(sessionSuccess)}`);
+    results.sessionCreated = sessionSuccess.payload.session.status === "pending";
     results.serverPrice = sessionSuccess.payload?.session?.amount;
     const completeSuccess = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: sessionSuccess.payload.session.sessionId });
     results.successStatus = completeSuccess.payload?.status;
