@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
+import { DashboardSubscriptionCard } from "@/components/subscription/dashboard-subscription-card";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
@@ -103,6 +104,8 @@ function WorkspaceOverview({ uid }: { uid: string }) {
           </Link>
         </div>
       </PageHeader>
+
+      <DashboardSubscriptionCard />
 
       {loading ? (
         <DashboardSkeleton />
