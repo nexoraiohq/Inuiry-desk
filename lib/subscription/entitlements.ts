@@ -89,7 +89,7 @@ export function evaluateEntitlement(
     if (ends > now.getTime()) {
       return { ...base, canWrite: true, reason: "Free trial in progress." };
     }
-    return { ...base, canWrite: false, reason: "Free trial has ended." };
+    return { ...base, status: "expired", canWrite: false, reason: "Free trial has ended." };
   }
 
   if (subscription.status === "past_due") {
