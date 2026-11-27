@@ -42,5 +42,6 @@ firebase-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 /.test-build
+/.test-build-live
 
 .vercel

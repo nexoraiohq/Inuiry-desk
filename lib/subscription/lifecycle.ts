@@ -47,7 +47,9 @@ export async function activateStarter(db: Firestore, input: ActivationInput): Pr
       trialEndsAt: (existing?.trialEndsAt ? Timestamp.fromDate(existing.trialEndsAt) : null) as FirestoreTime | null,
       currentPeriodStartedAt: Timestamp.fromDate(now),
       currentPeriodEndsAt: Timestamp.fromDate(periodEnd),
-      createdAt: (existing?.createdAt ? Timestamp.fromDate(existing.createdAt) : FieldValue.serverTimestamp()) as FirestoreTime,
+      createdAt: (existing?.createdAt
+        ? Timestamp.fromDate(existing.createdAt)
+        : FieldValue.serverTimestamp()) as unknown as FirestoreTime,
       updatedAt: FieldValue.serverTimestamp() as unknown as FirestoreTime,
       cancelAtPeriodEnd: false,
       cancelledAt: null,
