@@ -24,10 +24,10 @@ export function EmptyState({
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0">
-        <Heading className="text-[13px] font-semibold tracking-[-0.01em] text-ink sm:text-sm">
+        <Heading className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
           {title}
         </Heading>
-        <p className="mt-1 max-w-md text-[12px] leading-relaxed text-muted sm:text-[13px]">
+        <p className="mt-1 max-w-md text-[13px] leading-5 text-muted sm:text-[14px]">
           {description}
         </p>
         {children ? <div className="mt-4">{children}</div> : null}

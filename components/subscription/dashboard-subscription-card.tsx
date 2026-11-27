@@ -49,10 +49,10 @@ export function DashboardSubscriptionCard() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-display text-[14px] font-semibold text-ink">{plan.name}</p>
+            <p className="font-display text-[16px] font-semibold text-ink">{plan.name}</p>
             <Badge className={tone(entitlement.status)}>{LABELS[entitlement.status]}</Badge>
           </div>
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 text-[13px] text-muted">
             {entitlement.status === "trialing"
               ? `${entitlement.daysRemaining} day${entitlement.daysRemaining === 1 ? "" : "s"} remaining · trial ends ${date(subscription?.trialEndsAt ?? null)}`
               : entitlement.status === "active" || entitlement.status === "past_due" || entitlement.status === "cancelled"
@@ -65,13 +65,13 @@ export function DashboardSubscriptionCard() {
         </Link>
       </div>
       {attention && entitlement.canAccessProduct ? (
-        <p className="mt-3 text-[11px] font-medium text-brand">
-          Choose Starter in settings to keep access after your trial ends. Demo checkout — no real payment is collected.
+        <p className="mt-3 text-[13px] font-medium text-brand">
+          Pick Starter in Settings to keep everything running when the trial ends. Demo checkout only — no money is collected.
         </p>
       ) : null}
       {!entitlement.canAccessProduct ? (
-        <p className="mt-3 text-[11px] font-medium text-danger">
-          Paid features are restricted. Your records are preserved. Open settings to choose Starter.
+        <p className="mt-3 text-[13px] font-medium text-danger">
+          Paid features are paused, but your data is safe. Open Settings to choose Starter and resume.
         </p>
       ) : null}
     </Card>

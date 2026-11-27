@@ -44,8 +44,8 @@ export function RecentActivity({ activities }: { activities: ActivityRecord[] })
   return (
     <Panel
       title="Recent activity"
-      description="Every change to an inquiry, as it happens."
-      meta={activities.length ? `${activities.length} shown` : "No data yet"}
+      description="Changes to inquiries and follow-ups, newest first."
+      meta={activities.length ? `Latest ${activities.length}` : undefined}
     >
       {activities.length === 0 ? (
         <div className="px-4 py-6 sm:px-5">
@@ -53,7 +53,7 @@ export function RecentActivity({ activities }: { activities: ActivityRecord[] })
             icon={ActivityIcon}
             headingLevel="h3"
             title="No activity yet"
-            description="New inquiries, status changes and follow-ups will be recorded here automatically."
+            description="When you add an inquiry or change its status, you will see it here."
           />
         </div>
       ) : (
@@ -74,13 +74,13 @@ export function RecentActivity({ activities }: { activities: ActivityRecord[] })
                   <Icon className="size-4" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] leading-snug text-ink">
+                  <p className="text-[14px] leading-5 text-ink">
                     {activity.description}
                   </p>
                 </div>
                 <time
                   dateTime={activity.createdAt.toISOString()}
-                  className="shrink-0 text-[11px] text-subtle"
+                  className="shrink-0 text-[12px] text-subtle"
                 >
                   {formatRelative(activity.createdAt)}
                 </time>

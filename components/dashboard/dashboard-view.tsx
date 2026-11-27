@@ -28,33 +28,43 @@ import type { DashboardData } from "@/lib/dashboard/types";
 function DashboardResults({ data }: { data: DashboardData }) {
   const metrics = [
     {
-      label: "Total inquiries",
+      label: "Inquiries",
       value: data.metrics.totalInquiries,
-      hint: "all recorded inquiries",
+      hint: "every enquiry on record",
       icon: Inbox,
+      href: "/inquiries",
     },
     {
-      label: "New inquiries",
+      label: "Need a first reply",
       value: data.metrics.newInquiries,
-      hint: "awaiting first contact",
+      hint: "still marked as new",
       icon: CircleDot,
+      href: "/inquiries",
     },
     {
-      label: "Converted customers",
+      label: "Won",
       value: data.metrics.convertedInquiries,
-      hint: "successfully converted",
+      hint: "marked as converted",
       icon: CheckCircle2,
+      href: "/inquiries",
     },
     {
       label: "Follow-ups due",
       value: data.metrics.followUpsDue,
-      hint: "due now or overdue",
+      hint: "overdue or due today",
       icon: CalendarClock,
+      href: "/follow-ups",
     },
   ];
 
   return (
     <>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[12px] font-semibold tracking-[0.12em] text-subtle uppercase">
+          Workspace snapshot
+        </h2>
+        <p className="text-[12px] text-subtle">Counts come from your own records</p>
+      </div>
       <section aria-label="Key metrics" className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />
@@ -89,17 +99,17 @@ function WorkspaceOverview({ uid }: { uid: string }) {
     <div className="space-y-4 sm:space-y-6">
       <PageHeader title={page.title} description={page.description}>
         <div className="flex flex-col items-start gap-1.5 sm:items-end">
-          <p className="text-[12px] text-muted">
+          <p className="text-[13px] text-muted">
             {today ? formatToday(today) : ""}
           </p>
           {settings?.businessName ? (
-            <p className="text-[11px] text-subtle">{settings.businessName}</p>
+            <p className="text-[12px] text-subtle">{settings.businessName}</p>
           ) : null}
           <Link
             href="/inquiries"
             className={buttonClasses("secondary", "md", "h-9")}
           >
-            View inquiries
+            Open inquiries
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Link>
         </div>

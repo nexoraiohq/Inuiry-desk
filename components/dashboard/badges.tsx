@@ -9,7 +9,6 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { humanize } from "@/lib/dashboard/format";
 import type { InquirySource, InquiryStatus } from "@/lib/dashboard/types";
 
 const statusTones: Record<InquiryStatus, string> = {
@@ -18,6 +17,25 @@ const statusTones: Record<InquiryStatus, string> = {
   qualified: "bg-brand-soft text-brand-strong",
   converted: "bg-success-soft text-success",
   lost: "bg-danger-soft text-danger",
+};
+
+const statusLabels: Record<InquiryStatus, string> = {
+  new: "New",
+  contacted: "Contacted",
+  qualified: "Qualified",
+  converted: "Won",
+  lost: "Lost",
+};
+
+const sourceLabels: Record<InquirySource, string> = {
+  whatsapp: "WhatsApp",
+  website: "Website",
+  phone: "Phone",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  walk_in: "Walk-in",
+  referral: "Referral",
+  other: "Other",
 };
 
 const sourceIcons = {
@@ -35,11 +53,11 @@ export function StatusBadge({ status }: { status: InquiryStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold",
+        "inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-medium",
         statusTones[status]
       )}
     >
-      {humanize(status)}
+      {statusLabels[status]}
     </span>
   );
 }
@@ -47,9 +65,9 @@ export function StatusBadge({ status }: { status: InquiryStatus }) {
 export function SourceBadge({ source }: { source: InquirySource }) {
   const Icon = sourceIcons[source];
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
+    <span className="inline-flex items-center gap-1.5 text-[13px] text-muted">
       <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-      {humanize(source)}
+      {sourceLabels[source]}
     </span>
   );
 }
