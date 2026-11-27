@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/server/firebase-admin";
 import type { FollowUpRecord } from "@/lib/dashboard/types";
 import { evaluateReminders } from "@/lib/reminders/core";
 import {
@@ -10,27 +9,6 @@ import {
 
 const MAX_WORKSPACES_PER_RUN = 50;
 const MAX_FOLLOW_UPS_PER_WORKSPACE = 200;
-
-let app: App | null = null;
-
-function adminDb(): Firestore {
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "Scheduler credentials are not configured. Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL and FIREBASE_ADMIN_PRIVATE_KEY."
-    );
-  }
-
-  if (!app) {
-    app = getApps()[0] ?? initializeApp({
-      credential: cert({ projectId, clientEmail, privateKey }),
-    });
-  }
-  return getFirestore(app);
-}
 
 function idFor(key: string): string {
   return createHash("sha256").update(key).digest("hex").slice(0, 40);

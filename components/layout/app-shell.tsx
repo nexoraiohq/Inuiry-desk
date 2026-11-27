@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { SubscriptionBanner } from "@/components/subscription/subscription-banner";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -41,6 +42,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           onToggleCollapse={() => setCollapsed((value) => !value)}
           onOpenMenu={openMobile}
         />
+
+        <SubscriptionBanner />
 
         <main
           id="main-content"

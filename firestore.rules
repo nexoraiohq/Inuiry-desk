@@ -93,6 +93,24 @@ service cloud.firestore {
       return value in ['follow_up_upcoming', 'follow_up_due', 'follow_up_overdue', 'new_inquiry'];
     }
 
+    function subscriptionPath(workspaceId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/subscription/current;
+    }
+
+    // Server-side subscription enforcement at the database boundary. A
+    // workspace with no subscription record predates Phase 10 and is
+    // grandfathered — it is never treated as expired.
+    function subscriptionAllowsWrites(workspaceId) {
+      return !exists(subscriptionPath(workspaceId))
+        || get(subscriptionPath(workspaceId)).data.status in ['active', 'grandfathered']
+        || (get(subscriptionPath(workspaceId)).data.status == 'trialing'
+          && get(subscriptionPath(workspaceId)).data.trialEndsAt != null
+          && get(subscriptionPath(workspaceId)).data.trialEndsAt > request.time)
+        || (get(subscriptionPath(workspaceId)).data.status == 'past_due'
+          && get(subscriptionPath(workspaceId)).data.gracePeriodEndsAt != null
+          && get(subscriptionPath(workspaceId)).data.gracePeriodEndsAt > request.time);
+    }
+
     function validReminderSettings(value) {
       return value == null || (value is map
         && value.get('remindersEnabled', true) is bool
@@ -217,7 +235,8 @@ service cloud.firestore {
           && validNullableTimestamp(request.resource.data.lastContactedAt)
           && validNullableTimestamp(request.resource.data.nextFollowUpAt)
           && request.resource.data.createdAt == request.time
-          && request.resource.data.updatedAt == request.time;
+          && request.resource.data.updatedAt == request.time
+          && subscriptionAllowsWrites(workspaceId);
 
         allow update: if isOwner(workspaceId)
           && request.resource.data.createdByUid == resource.data.createdByUid
@@ -262,7 +281,8 @@ service cloud.firestore {
           && validTimestamp(request.resource.data.updatedAt)
           && validNullableTimestamp(request.resource.data.completedAt)
           && request.resource.data.createdAt == request.time
-          && request.resource.data.updatedAt == request.time;
+          && request.resource.data.updatedAt == request.time
+          && subscriptionAllowsWrites(workspaceId);
 
         allow update: if isOwner(workspaceId)
           && request.resource.data.createdByUid == resource.data.createdByUid
@@ -292,7 +312,8 @@ service cloud.firestore {
           && validNullableText(request.resource.data.inquiryId, 150)
           && validText(request.resource.data.description, 500)
           && validTimestamp(request.resource.data.createdAt)
-          && request.resource.data.createdAt == request.time;
+          && request.resource.data.createdAt == request.time
+          && subscriptionAllowsWrites(workspaceId);
 
         allow update, delete: if false;
       }
@@ -313,7 +334,8 @@ service cloud.firestore {
           && validTimestamp(request.resource.data.updatedAt)
           && validNullableText(request.resource.data.followUpId, 150)
           && request.resource.data.createdAt == request.time
-          && request.resource.data.updatedAt == request.time;
+          && request.resource.data.updatedAt == request.time
+          && subscriptionAllowsWrites(workspaceId);
 
         allow update: if isOwner(workspaceId)
           && request.resource.data.createdByUid == resource.data.createdByUid
@@ -346,6 +368,15 @@ service cloud.firestore {
           && validNotificationType(request.resource.data.type)
           && request.resource.data.type in ['follow_up_due', 'follow_up_overdue', 'new_inquiry'];
         allow delete: if isOwner(workspaceId);
+      }
+
+      // ---- Subscription (server-owned) ---------------------------------
+      // Owners may only read their subscription. Every privileged field —
+      // plan, status, trial dates, grace period — is written by Firebase
+      // Admin through the authenticated server routes.
+      match /subscription/{subscriptionId} {
+        allow read: if isOwner(workspaceId);
+        allow write: if false;
       }
 
       // ---- Reminder execution jobs (scheduler-owned) -------------------

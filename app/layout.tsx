@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { WorkspaceSettingsProvider } from "@/components/settings/workspace-settings-provider";
+import { SubscriptionProvider } from "@/components/subscription/subscription-provider";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -55,7 +56,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           inject attributes onto html/body before React hydrates. */}
       <body className="min-h-full antialiased" suppressHydrationWarning>
         <AuthProvider>
-          <WorkspaceSettingsProvider>{children}</WorkspaceSettingsProvider>
+          <WorkspaceSettingsProvider>
+            <SubscriptionProvider>{children}</SubscriptionProvider>
+          </WorkspaceSettingsProvider>
         </AuthProvider>
       </body>
     </html>

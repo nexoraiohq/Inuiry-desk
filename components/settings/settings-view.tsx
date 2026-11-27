@@ -8,6 +8,7 @@ import { FollowUpPreferencesForm } from "@/components/settings/follow-up-prefere
 import { InquiryConfigForm } from "@/components/settings/inquiry-config-form";
 import { PreferencesForm } from "@/components/settings/preferences-form";
 import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
+import { SubscriptionForm } from "@/components/settings/subscription-form";
 import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,6 +21,7 @@ const SECTIONS = [
   { id: "inquiry", label: "Inquiry configuration" },
   { id: "followUps", label: "Follow-up preferences" },
   { id: "account", label: "Account settings" },
+  { id: "subscription", label: "Subscription" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -76,6 +78,7 @@ export function SettingsView({ uid }: { uid: string }) {
           {active === "inquiry" ? <InquiryConfigForm settings={settings} onSave={save} /> : null}
           {active === "followUps" ? <FollowUpPreferencesForm settings={settings} onSave={save} /> : null}
           {active === "account" ? <AccountSettingsForm /> : null}
+          {active === "subscription" ? <SubscriptionForm /> : null}
         </div>
       </div>
     </div>

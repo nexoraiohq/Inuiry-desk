@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input, Field, PasswordInput } from "@/components/ui/input";
 import { buttonClasses } from "@/components/ui/button";
 import { registerAccount } from "@/lib/auth";
+import { initializeSubscription } from "@/lib/subscription/client";
 import { safeNextPath } from "@/lib/navigation";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,6 +54,13 @@ export function RegisterForm() {
         email: email.trim(),
         password,
       });
+      // Trial bootstrap is best-effort: the subscription state route is
+      // idempotent and retries on first load if this call fails.
+      try {
+        await initializeSubscription();
+      } catch {
+        // Registration must never fail because billing setup is unavailable.
+      }
       router.replace(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
