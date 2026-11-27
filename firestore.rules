@@ -384,6 +384,16 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ---- Simulated billing (server-owned, no real payments) ----------
+      match /checkouts/{checkoutId} {
+        allow read: if isOwner(workspaceId);
+        allow write: if false;
+      }
+      match /billing/{transactionId} {
+        allow read: if isOwner(workspaceId);
+        allow write: if false;
+      }
+
       // ---- Reminder execution jobs (scheduler-owned) -------------------
       match /reminderJobs/{jobId} {
         allow read: if isOwner(workspaceId);

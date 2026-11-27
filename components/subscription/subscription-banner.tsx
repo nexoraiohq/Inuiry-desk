@@ -29,7 +29,7 @@ export function SubscriptionBanner() {
         >
           Manage subscription <ArrowRight className="size-3.5" aria-hidden="true" />
         </Link>
-        <span className="text-subtle">Payment processing is not available yet.</span>
+        <span className="text-subtle">Demo checkout available — no real payment is collected.</span>
       </div>
     </div>
   );

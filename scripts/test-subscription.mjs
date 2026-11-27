@@ -18,6 +18,7 @@ execFileSync(
     "lib/subscription/types.ts",
     "lib/subscription/catalog.ts",
     "lib/subscription/entitlements.ts",
+    "lib/subscription/billing-shared.ts",
     "--outDir",
     OUT,
     "--rootDir",
@@ -38,6 +39,13 @@ const require = createRequire(import.meta.url);
 const { evaluateEntitlement, authorizeAccess, canUseFeature } = require(`../${OUT}/entitlements.js`);
 const { PLAN_CATALOG, TRIAL_DURATION_DAYS, STARTER_MONTHLY_PRICE, BILLING_CURRENCY, BILLING_INTERVAL } =
   require(`../${OUT}/catalog.js`);
+const {
+  checkoutSummary,
+  isRenewalEligible,
+  isPurchaseEligible,
+  nextBillingPeriod,
+  billingStatusFor,
+} = require(`../${OUT}/billing-shared.js`);
 
 const now = new Date("2026-06-15T12:00:00.000Z");
 const day = 86_400_000;
@@ -188,6 +196,46 @@ check("repeated entitlement evaluation is stable (idempotent decision)", () => {
   const first = evaluateEntitlement(record, now);
   const second = evaluateEntitlement(record, now);
   assert.deepEqual(first, second);
+});
+
+check("checkout summary derives KES 1500 from the catalog and marks demo mode", () => {
+  const summary = checkoutSummary("purchase");
+  assert.equal(summary.amount, 1500);
+  assert.equal(summary.currency, "KES");
+  assert.equal(summary.billingInterval, "monthly");
+  assert.equal(summary.simulated, true);
+});
+
+check("simulated outcomes map deterministically to billing statuses", () => {
+  assert.equal(billingStatusFor("success"), "succeeded");
+  assert.equal(billingStatusFor("failure"), "failed");
+  assert.equal(billingStatusFor("cancel"), "cancelled");
+});
+
+check("renewal eligibility requires an active paid period in the future", () => {
+  const active = { ...base, plan: "starter", status: "active" };
+  const trialing = { ...base, plan: "trial", status: "trialing" };
+  const ended = { ...base, plan: "starter", status: "active", currentPeriodEndsAt: new Date(now.getTime() - day) };
+  assert.equal(isRenewalEligible(active, now), true);
+  assert.equal(isRenewalEligible(trialing, now), false);
+  assert.equal(isRenewalEligible(ended, now), false);
+  assert.equal(isRenewalEligible(null, now), false);
+});
+
+check("purchase eligibility excludes an active paid subscription", () => {
+  assert.equal(isPurchaseEligible(null), true);
+  assert.equal(isPurchaseEligible({ ...base, plan: "trial", status: "trialing" }), true);
+  assert.equal(isPurchaseEligible({ ...base, plan: "starter", status: "active" }), false);
+});
+
+check("purchase period starts now; renewal extends from the existing end", () => {
+  const active = { ...base, plan: "starter", status: "active" };
+  const purchase = nextBillingPeriod("purchase", active, now);
+  assert.equal(purchase.start.getTime(), now.getTime());
+  assert.equal(purchase.end.getTime() - purchase.start.getTime(), 30 * day);
+  const renewal = nextBillingPeriod("renewal", active, now);
+  assert.equal(renewal.start.getTime(), active.currentPeriodEndsAt.getTime());
+  assert.equal(renewal.end.getTime() - renewal.start.getTime(), 30 * day);
 });
 
 rmSync(OUT, { recursive: true, force: true });
