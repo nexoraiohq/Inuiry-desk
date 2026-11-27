@@ -64,7 +64,7 @@ export function InquiryDetailView({
   const [detail, setDetail] = useState<InquiryDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [followUpOpen, setFollowUpOpen] = useState(false);
@@ -104,10 +104,10 @@ export function InquiryDetailView({
     setStatusBusy(true);
     try {
       await changeInquiryStatus(uid, inquiryId, next);
-      setNotice("Status updated and activity recorded.");
+      setNotice({ tone: "success", message: "Status updated and activity recorded." });
       refresh();
     } catch (caught) {
-      setNotice(caught instanceof Error ? caught.message : "Could not update the status.");
+      setNotice({ tone: "danger", message: caught instanceof Error ? caught.message : "Could not update the status." });
     } finally {
       setStatusBusy(false);
     }
@@ -146,8 +146,8 @@ export function InquiryDetailView({
 
       {notice ? (
         <Notice
-          tone={notice.includes("updated") ? "success" : "danger"}
-          message={notice}
+          tone={notice.tone}
+          message={notice.message}
           onDismiss={() => setNotice(null)}
         />
       ) : null}
@@ -357,7 +357,7 @@ export function InquiryDetailView({
         inquiry={inquiry}
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={(message) => { setNotice(message); refresh(); }}
+        onSaved={(message) => { setNotice({ tone: "success", message }); refresh(); }}
       />
 
       <FollowUpFormDialog
@@ -367,7 +367,7 @@ export function InquiryDetailView({
         fixedInquiryId={inquiry.id}
         open={followUpOpen}
         onClose={() => setFollowUpOpen(false)}
-        onSaved={(message) => { setNotice(message); refresh(); }}
+        onSaved={(message) => { setNotice({ tone: "success", message }); refresh(); }}
       />
     </div>
   );

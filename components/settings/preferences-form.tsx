@@ -39,6 +39,10 @@ export function PreferencesForm({
       setError("Choose a valid IANA timezone.");
       return;
     }
+    if (preferences.timezone.length > 64) {
+      setError("Timezone must be 64 characters or fewer.");
+      return;
+    }
     setError(null);
     setSuccess(false);
     setBusy(true);
@@ -64,6 +68,7 @@ export function PreferencesForm({
             <Input
               list="workspace-timezones"
               value={preferences.timezone}
+              maxLength={64}
               onChange={(e) => setPreferences((current) => ({ ...current, timezone: e.target.value }))}
               disabled={busy}
               required

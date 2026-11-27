@@ -35,18 +35,17 @@ export function SettingsView({ uid }: { uid: string }) {
     refresh();
   }
 
+  if (error && !settings) {
+    return <DashboardError title="We couldn't load settings" message={error} onRetry={refresh} />;
+  }
+
   if (loading || !settings) {
     return (
       <div className="space-y-4">
         <PageHeader title="Settings" description="Manage your workspace and account." />
-        {error ? <Notice tone="danger" message={error} /> : null}
         <SettingsSkeleton />
       </div>
     );
-  }
-
-  if (error && !settings) {
-    return <DashboardError title="We couldn't load settings" message={error} onRetry={refresh} />;
   }
 
   return (

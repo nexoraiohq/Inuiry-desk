@@ -18,7 +18,7 @@ import { isValidOptionalEmail, isValidPhone, normalizePhone } from "@/lib/inquir
 import { createInquiry, updateInquiry } from "@/lib/inquiries/service";
 import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 
-type FormErrors = Partial<Record<"fullName" | "phone" | "email" | "service" | "notes", string>>;
+type FormErrors = Partial<Record<"fullName" | "phone" | "email" | "service" | "source" | "notes", string>>;
 
 type Props = {
   open: boolean;
@@ -36,7 +36,9 @@ export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Prop
   const availableSources = editing
     ? configuredSources
     : configuredSources.filter((item) => item.active);
-  const defaultSourceId = availableSources.find((item) => item.active)?.id ?? "website";
+  // Never fall back to a source that isn't in this workspace's active list —
+  // the create rule rejects sources outside activeSourceIds.
+  const defaultSourceId = availableSources[0]?.id ?? "";
   const [fullName, setFullName] = useState(inquiry?.fullName ?? "");
   const [phone, setPhone] = useState(inquiry?.phone ?? "");
   const [email, setEmail] = useState(inquiry?.email ?? "");
@@ -64,6 +66,9 @@ export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Prop
       next.service = "Enter a service (up to 150 characters).";
     }
     if (notes.length > 2000) next.notes = "Notes must be 2000 characters or fewer.";
+    if (!availableSources.some((item) => item.id === source)) {
+      next.source = "Add and activate an inquiry source in Settings first.";
+    }
     return next;
   }
 
@@ -132,9 +137,9 @@ export function InquiryFormDialog({ open, onClose, onSaved, uid, inquiry }: Prop
           <Input value={service} onChange={(e) => setService(e.target.value)} disabled={busy} required />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Source">
+          <Field label="Source" error={errors.source}>
             <Select value={source} onChange={(e) => setSource(e.target.value)} disabled={busy}>
-              {!hasCurrentSource ? <option value={source}>{humanize(source)} (inactive)</option> : null}
+              {!hasCurrentSource ? <option value={source}>{source ? `${humanize(source)} (inactive)` : "No active source configured"}</option> : null}
               {availableSources.map((option) => (
                 <option key={option.id} value={option.id}>{option.label}{option.active ? "" : " (inactive)"}</option>
               ))}

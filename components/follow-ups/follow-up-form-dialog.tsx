@@ -75,7 +75,7 @@ export function FollowUpFormDialog({
         await updateFollowUp(uid, followUp.id, { title, description, dueDate, dueTime, priority });
         onSaved("Follow-up updated.");
       } else {
-        await createFollowUp(uid, { inquiryId, customerName, title, description, dueDate, dueTime, priority });
+        await createFollowUp(uid, { inquiryId, customerName: customerName.slice(0, 100), title, description, dueDate, dueTime, priority });
         onSaved("Follow-up scheduled.");
       }
       onClose();

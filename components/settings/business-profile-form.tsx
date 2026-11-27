@@ -34,6 +34,17 @@ export function BusinessProfileForm({
       setError("Enter a business name (up to 150 characters).");
       return;
     }
+    const limits: Array<[keyof WorkspaceProfile, number, string]> = [
+      ["description", 2000, "description"], ["industry", 100, "industry"],
+      ["email", 254, "email"], ["phone", 50, "phone"],
+      ["website", 300, "website"], ["country", 100, "country"],
+      ["city", 100, "city"], ["logoUrl", 500, "logo URL"],
+    ];
+    const tooLong = limits.find(([key, max]) => (profile[key] ?? "").length > max);
+    if (tooLong) {
+      setError(`${tooLong[2]} must be ${tooLong[1]} characters or fewer.`);
+      return;
+    }
     if (profile.logoUrl && !/^https?:\/\//i.test(profile.logoUrl)) {
       setError("Logo URL must start with http:// or https://.");
       return;
@@ -59,32 +70,32 @@ export function BusinessProfileForm({
       {success ? <div className="mt-4"><Notice tone="success" message="Business profile saved." onDismiss={() => setSuccess(false)} /></div> : null}
       <form onSubmit={handleSubmit} className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Business name">
-          <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} disabled={busy} required />
+          <Input value={businessName} maxLength={150} onChange={(e) => setBusinessName(e.target.value)} disabled={busy} required />
         </Field>
         <Field label="Industry">
-          <Input value={profile.industry} onChange={(e) => setField("industry", e.target.value)} disabled={busy} placeholder="SaaS, Agency, Retail…" />
+          <Input value={profile.industry} maxLength={100} onChange={(e) => setField("industry", e.target.value)} disabled={busy} placeholder="SaaS, Agency, Retail…" />
         </Field>
         <Field label="Business email">
-          <Input type="email" value={profile.email} onChange={(e) => setField("email", e.target.value)} disabled={busy} />
+          <Input type="email" value={profile.email} maxLength={254} onChange={(e) => setField("email", e.target.value)} disabled={busy} />
         </Field>
         <Field label="Business phone">
-          <Input type="tel" value={profile.phone} onChange={(e) => setField("phone", e.target.value)} disabled={busy} />
+          <Input type="tel" value={profile.phone} maxLength={50} onChange={(e) => setField("phone", e.target.value)} disabled={busy} />
         </Field>
         <Field label="Website">
-          <Input value={profile.website} onChange={(e) => setField("website", e.target.value)} disabled={busy} placeholder="https://example.com" />
+          <Input value={profile.website} maxLength={300} onChange={(e) => setField("website", e.target.value)} disabled={busy} placeholder="https://example.com" />
         </Field>
         <Field label="Logo URL" hint="A direct https:// image URL. No upload infrastructure is used.">
-          <Input value={profile.logoUrl} onChange={(e) => setField("logoUrl", e.target.value)} disabled={busy} placeholder="https://example.com/logo.png" />
+          <Input value={profile.logoUrl} maxLength={500} onChange={(e) => setField("logoUrl", e.target.value)} disabled={busy} placeholder="https://example.com/logo.png" />
         </Field>
         <Field label="Country">
-          <Input value={profile.country} onChange={(e) => setField("country", e.target.value)} disabled={busy} />
+          <Input value={profile.country} maxLength={100} onChange={(e) => setField("country", e.target.value)} disabled={busy} />
         </Field>
         <Field label="City / location">
-          <Input value={profile.city} onChange={(e) => setField("city", e.target.value)} disabled={busy} />
+          <Input value={profile.city} maxLength={100} onChange={(e) => setField("city", e.target.value)} disabled={busy} />
         </Field>
         <div className="sm:col-span-2">
           <Field label="Business description">
-            <Textarea value={profile.description} onChange={(e) => setField("description", e.target.value)} disabled={busy} placeholder="What does your business do?" />
+            <Textarea value={profile.description} maxLength={2000} onChange={(e) => setField("description", e.target.value)} disabled={busy} placeholder="What does your business do?" />
           </Field>
         </div>
         <div className="flex justify-end sm:col-span-2">
