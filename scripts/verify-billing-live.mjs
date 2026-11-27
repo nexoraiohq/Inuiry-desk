@@ -73,6 +73,12 @@ async function removeWorkspace(workspace) {
   await db.collection("trialClaims").doc(createHash("sha256").update(workspace.email).digest("hex")).delete();
 }
 
+function sessionOf(response, label) {
+  assert.ok(response.status === 200 && response.payload?.session,
+    `${label} checkout failed: ${JSON.stringify(response)}`);
+  return response.payload.session;
+}
+
 async function checkout(token, intent, outcome, key, extra = {}) {
   return api("/api/subscription/checkout", token, "POST", {
     intent, outcome, idempotencyKey: key, ...extra,
@@ -84,10 +90,12 @@ async function checkout(token, intent, outcome, key, extra = {}) {
   const now = new Date();
   const a = await makeWorkspace("a", suffix, now);
   const b = await makeWorkspace("b", suffix, new Date(now.getTime() - 30 * 86_400_000));
+  const c = await makeWorkspace("c", suffix, now);
   const results = {};
   try {
     const tokenA = await tokenFor(a.email);
     const tokenB = await tokenFor(b.email);
+    const tokenC = await tokenFor(c.email);
 
     results.invalidAuth = (await api("/api/subscription/billing", "")).status;
     results.manipulatedInputRejected = (await checkout(tokenA, "purchase", "success", randomUUID(), { amount: 1, plan: "growth", status: "active" })).status === 200 &&
@@ -95,11 +103,10 @@ async function checkout(token, intent, outcome, key, extra = {}) {
 
     const keySuccess = randomUUID();
     const sessionSuccess = await checkout(tokenA, "purchase", "success", keySuccess);
-    assert.ok(sessionSuccess.status === 200 && sessionSuccess.payload?.session,
-      `success checkout failed: ${JSON.stringify(sessionSuccess)}`);
-    results.sessionCreated = sessionSuccess.payload.session.status === "pending";
-    results.serverPrice = sessionSuccess.payload?.session?.amount;
-    const completeSuccess = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: sessionSuccess.payload.session.sessionId });
+    const successSession = sessionOf(sessionSuccess, "success");
+    results.sessionCreated = successSession.status === "pending";
+    results.serverPrice = successSession.amount;
+    const completeSuccess = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: successSession.sessionId });
     results.successStatus = completeSuccess.payload?.status;
     results.successRef = Boolean(completeSuccess.payload?.reference);
     const stateAfterSuccess = await api("/api/subscription/state", tokenA);
@@ -108,27 +115,30 @@ async function checkout(token, intent, outcome, key, extra = {}) {
     results.accessAfterSuccess = (await api("/api/subscription/access", tokenA, "POST", { feature: "inquiries" })).status;
     const periodAfterSuccess = stateAfterSuccess.payload?.subscription?.currentPeriodEndsAt;
 
-    const repeatComplete = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: sessionSuccess.payload.session.sessionId });
+    const repeatComplete = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: successSession.sessionId });
     results.repeatCompleteSameRef = repeatComplete.payload?.reference === completeSuccess.payload?.reference;
     results.repeatPeriodUnchanged =
       (await api("/api/subscription/state", tokenA)).payload?.subscription?.currentPeriodEndsAt === periodAfterSuccess;
     const repeatCreate = await checkout(tokenA, "purchase", "success", keySuccess);
-    results.repeatSessionSameId = repeatCreate.payload?.session?.sessionId === sessionSuccess.payload?.session?.sessionId;
+    results.repeatSessionSameId = sessionOf(repeatCreate, "repeat create").sessionId === successSession.sessionId;
 
-    const fail = await checkout(tokenA, "purchase", "failure", randomUUID());
-    const failResult = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: fail.payload.session.sessionId });
+    // Failure and cancellation are tested on a separate trial workspace so
+    // they never attempt to purchase over an already active subscription.
+    const trialPeriodBefore = (await api("/api/subscription/state", tokenC)).payload?.subscription?.currentPeriodEndsAt;
+    const fail = await checkout(tokenC, "purchase", "failure", randomUUID());
+    const failResult = await api("/api/subscription/checkout/complete", tokenC, "POST", { sessionId: sessionOf(fail, "failure").sessionId });
     results.failedStatus = failResult.payload?.status;
-    results.failedNoExtension =
-      (await api("/api/subscription/state", tokenA)).payload?.subscription?.currentPeriodEndsAt === periodAfterSuccess;
+    results.failedNoChange =
+      (await api("/api/subscription/state", tokenC)).payload?.subscription?.currentPeriodEndsAt === trialPeriodBefore;
 
-    const cancel = await checkout(tokenA, "purchase", "cancel", randomUUID());
-    const cancelResult = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: cancel.payload.session.sessionId });
+    const cancel = await checkout(tokenC, "purchase", "cancel", randomUUID());
+    const cancelResult = await api("/api/subscription/checkout/complete", tokenC, "POST", { sessionId: sessionOf(cancel, "cancel").sessionId });
     results.cancelledStatus = cancelResult.payload?.status;
-    results.cancelledNoExtension =
-      (await api("/api/subscription/state", tokenA)).payload?.subscription?.currentPeriodEndsAt === periodAfterSuccess;
+    results.cancelledNoChange =
+      (await api("/api/subscription/state", tokenC)).payload?.subscription?.currentPeriodEndsAt === trialPeriodBefore;
 
     const renewal = await checkout(tokenA, "renewal", "success", randomUUID());
-    const renewalResult = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: renewal.payload.session.sessionId });
+    const renewalResult = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: sessionOf(renewal, "renewal").sessionId });
     const stateAfterRenewal = await api("/api/subscription/state", tokenA);
     results.renewalStatus = renewalResult.payload?.status;
     results.renewalExtended =
@@ -146,7 +156,7 @@ async function checkout(token, intent, outcome, key, extra = {}) {
     results.foreignSessionRejected = crossSession.status;
 
     const billingWrite = await fetch(
-      `${FIRESTORE}/workspaces/${a.uid}/billing/${sessionSuccess.payload.session.sessionId}`,
+      `${FIRESTORE}/workspaces/${a.uid}/billing/${successSession.sessionId}`,
       {
         method: "PATCH",
         headers: { authorization: `Bearer ${tokenA}`, "content-type": "application/json" },
@@ -161,7 +171,7 @@ async function checkout(token, intent, outcome, key, extra = {}) {
 
     // Grandfathered workspace can purchase through the same trusted pathway.
     const legacyPurchase = await checkout(tokenB, "purchase", "success", randomUUID());
-    const legacyResult = await api("/api/subscription/checkout/complete", tokenB, "POST", { sessionId: legacyPurchase.payload.session.sessionId });
+    const legacyResult = await api("/api/subscription/checkout/complete", tokenB, "POST", { sessionId: sessionOf(legacyPurchase, "grandfathered purchase").sessionId });
     results.grandfatheredPurchase = legacyResult.payload?.status;
     results.grandfatheredAccess = (await api("/api/subscription/access", tokenB, "POST", { feature: "reports" })).status;
 
@@ -171,12 +181,13 @@ async function checkout(token, intent, outcome, key, extra = {}) {
     });
     results.expiredAccess = (await api("/api/subscription/access", tokenA, "POST", { feature: "inquiries" })).status;
     const restore = await checkout(tokenA, "purchase", "success", randomUUID());
-    const restoreResult = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: restore.payload.session.sessionId });
+    const restoreResult = await api("/api/subscription/checkout/complete", tokenA, "POST", { sessionId: sessionOf(restore, "restore").sessionId });
     results.restoredStatus = restoreResult.payload?.status;
     results.restoredAccess = (await api("/api/subscription/access", tokenA, "POST", { feature: "inquiries" })).status;
   } finally {
     await removeWorkspace(a);
     await removeWorkspace(b);
+    await removeWorkspace(c);
   }
   console.log(JSON.stringify(results, null, 2));
 })().catch((error) => {

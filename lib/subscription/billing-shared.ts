@@ -46,8 +46,11 @@ export function isRenewalEligible(subscription: SubscriptionRecord | null, now: 
   return subscription.currentPeriodEndsAt.getTime() > now.getTime();
 }
 
-export function isPurchaseEligible(subscription: SubscriptionRecord | null): boolean {
+export function isPurchaseEligible(subscription: SubscriptionRecord | null, now: Date = new Date()): boolean {
   if (!subscription) return true; // grandfathered workspace may purchase Starter
+  if (subscription.status === "active") {
+    return subscription.currentPeriodEndsAt.getTime() <= now.getTime();
+  }
   return ["trialing", "expired", "cancelled", "past_due"].includes(subscription.status);
 }
 

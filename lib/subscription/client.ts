@@ -13,11 +13,20 @@ async function readError(response: Response, fallback: string): Promise<string> 
   return payload?.error ?? fallback;
 }
 
+/** A stalled server call must never leave the UI on a permanent loading state. */
+function withTimeout(signal?: AbortSignal): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 8000);
+  if (signal) signal.addEventListener("abort", () => controller.abort(), { once: true });
+  return controller.signal;
+}
+
 /** Reads subscription state from the authenticated server route. */
 export async function fetchSubscriptionState(): Promise<SubscriptionStateView> {
   const value = await token();
   const response = await fetch("/api/subscription/state", {
     headers: { authorization: `Bearer ${value}` },
+    signal: withTimeout(),
   });
   const payload = (await response.json()) as SubscriptionStateView & { error?: string };
   if (!response.ok) throw new Error(payload.error ?? "Could not load subscription information.");
@@ -77,6 +86,7 @@ export async function createCheckout(
     method: "POST",
     headers: { authorization: `Bearer ${value}`, "content-type": "application/json" },
     body: JSON.stringify({ intent, outcome, idempotencyKey }),
+    signal: withTimeout(),
   });
   if (!response.ok) throw new Error(await readError(response, "Could not start checkout."));
   const payload = (await response.json()) as { session: CheckoutSessionView };
@@ -89,6 +99,7 @@ export async function completeCheckout(sessionId: string): Promise<CheckoutResul
     method: "POST",
     headers: { authorization: `Bearer ${value}`, "content-type": "application/json" },
     body: JSON.stringify({ sessionId }),
+    signal: withTimeout(),
   });
   if (!response.ok) throw new Error(await readError(response, "Could not complete checkout."));
   return (await response.json()) as CheckoutResultView;
@@ -99,6 +110,7 @@ export async function cancelSubscription(): Promise<{ changed: boolean }> {
   const response = await fetch("/api/subscription/cancel", {
     method: "POST",
     headers: { authorization: `Bearer ${value}` },
+    signal: withTimeout(),
   });
   if (!response.ok) throw new Error(await readError(response, "Could not schedule cancellation."));
   return (await response.json()) as { changed: boolean };
@@ -108,6 +120,7 @@ export async function fetchBillingHistory(): Promise<BillingRecordView[]> {
   const value = await token();
   const response = await fetch("/api/subscription/billing", {
     headers: { authorization: `Bearer ${value}` },
+    signal: withTimeout(),
   });
   if (!response.ok) throw new Error(await readError(response, "Could not load billing history."));
   const payload = (await response.json()) as { transactions: BillingRecordView[] };
@@ -121,6 +134,7 @@ export async function initializeSubscription(): Promise<void> {
   const response = await fetch("/api/subscription/trial", {
     method: "POST",
     headers: { authorization: `Bearer ${value}` },
+    signal: withTimeout(),
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;

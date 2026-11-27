@@ -122,14 +122,20 @@ export async function createCheckoutSession(
   const intent = input.intent as CheckoutIntent;
   const outcome = input.outcome as CheckoutOutcome;
   const db = adminDb();
+  const id = sessionIdFor(workspaceId, input.idempotencyKey);
+  const ref = checkouts(workspaceId).doc(id);
+
+  // Idempotency first: a repeated request returns the original session even
+  // if the subscription has since become active.
+  const existing = parseSession(await ref.get());
+  if (existing) return serializeSession(existing);
+
   const current = await getSubscription(workspaceId);
   if (intent === "renewal" ? !isRenewalEligible(current) : !isPurchaseEligible(current)) {
     throw new SubscriptionError(intent === "renewal" ? "Renewal is not available yet." : "A new purchase is not available for this subscription.", 409);
   }
 
   const summary = checkoutSummary(intent);
-  const id = sessionIdFor(workspaceId, input.idempotencyKey);
-  const ref = checkouts(workspaceId).doc(id);
   const created = new Date();
   const session = await db.runTransaction(async (transaction) => {
     const snap = await transaction.get(ref);

@@ -32,8 +32,8 @@ import {
   type CheckoutResultView,
 } from "@/lib/subscription/client";
 import { formatInZone } from "@/lib/datetime/zone";
-import type { EffectiveStatus } from "@/lib/subscription/entitlements";
-import { toSubscriptionRecord } from "@/lib/subscription/view";
+import { evaluateEntitlement, type EffectiveStatus } from "@/lib/subscription/entitlements";
+import { toSubscriptionRecord, type SubscriptionStateView } from "@/lib/subscription/view";
 
 type Tab = "overview" | "plans" | "billing";
 
@@ -101,7 +101,7 @@ export function SubscriptionForm() {
     return () => window.clearTimeout(timer);
   }, [tab, loadBilling]);
 
-  if (loading || !state) {
+  if (loading && !state) {
     return (
       <Card className="bg-canvas/80 p-4 shadow-card sm:p-6">
         <h2 className="font-display text-[15px] font-semibold text-ink">Subscription</h2>
@@ -110,10 +110,26 @@ export function SubscriptionForm() {
     );
   }
 
-  const { entitlement, usage, subscription } = state;
+  // The whole interface stays usable even if the status call fails: plans,
+  // billing history and explanatory copy are always visible.
+  const unavailable = !state;
+  const fallback: SubscriptionStateView = {
+    subscription: null,
+    entitlement: evaluateEntitlement(null),
+    usage: {
+      totalInquiries: 0,
+      activeInquiries: 0,
+      followUps: 0,
+      measuredAt: new Date().toISOString(),
+      periodStart: new Date().toISOString(),
+      periodEnd: new Date().toISOString(),
+    },
+  };
+  const view = state ?? fallback;
+  const { entitlement, usage, subscription } = view;
   const record = toSubscriptionRecord(subscription);
-  const canPurchase = isPurchaseEligible(record);
-  const canRenew = isRenewalEligible(record);
+  const canPurchase = !unavailable && isPurchaseEligible(record);
+  const canRenew = !unavailable && isRenewalEligible(record);
   const summary = checkoutSummary(intent);
   const nextBillingDate = subscription?.currentPeriodEndsAt ?? null;
 
@@ -196,7 +212,14 @@ export function SubscriptionForm() {
         ))}
       </div>
 
-      {error ? <div className="mt-4"><Notice tone="danger" message={error} /></div> : null}
+      {error ? (
+        <div className="mt-4">
+          <Notice tone="danger" message={`${error} Plans and billing history are still available below.`} />
+          <button type="button" onClick={() => void refresh()} className={buttonClasses("secondary", "sm", "mt-2")}>
+            Retry status
+          </button>
+        </div>
+      ) : null}
       {actionError ? <div className="mt-4"><Notice tone="danger" message={actionError} /></div> : null}
       {actionSuccess ? <div className="mt-4"><Notice tone="success" message={actionSuccess} /></div> : null}
 
@@ -207,13 +230,17 @@ export function SubscriptionForm() {
               <p className="text-[11px] font-medium text-subtle">Current plan</p>
               <p className="mt-1 font-display text-[18px] font-semibold text-ink">{getPlan(entitlement.plan).name}</p>
             </div>
-            <Badge className={statusVariant(entitlement.status)}>{STATUS_LABELS[entitlement.status]}</Badge>
+            <Badge className={unavailable ? "bg-danger-soft text-danger" : statusVariant(entitlement.status)}>
+              {unavailable ? "Status unavailable" : STATUS_LABELS[entitlement.status]}
+            </Badge>
             <p className="ml-auto text-[12px] text-muted">{formatPrice(entitlement.plan)} · billed {BILLING_INTERVAL}</p>
           </div>
 
-          <p className="text-[12px] text-muted">{entitlement.reason}</p>
+          <p className="text-[12px] text-muted">
+            {unavailable ? "Current subscription status could not be loaded. Use Retry above." : entitlement.reason}
+          </p>
 
-          {entitlement.grandfathered ? (
+          {!unavailable && entitlement.grandfathered ? (
             <div className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[12px] text-muted">
               Existing workspace: access is preserved without a paid subscription. You may choose Starter at any time.
             </div>
@@ -258,9 +285,9 @@ export function SubscriptionForm() {
           <div className="border-t border-line pt-4">
             <h3 className="text-[12px] font-semibold text-ink">Usage (informational)</h3>
             <div className="mt-2 grid gap-3 sm:grid-cols-3">
-              <StatusLine label="Active inquiries" value={String(usage.activeInquiries)} />
-              <StatusLine label="Follow-ups" value={String(usage.followUps)} />
-              <StatusLine label="All inquiries" value={String(usage.totalInquiries)} />
+              <StatusLine label="Active inquiries" value={unavailable ? "—" : String(usage.activeInquiries)} />
+              <StatusLine label="Follow-ups" value={unavailable ? "—" : String(usage.followUps)} />
+              <StatusLine label="All inquiries" value={unavailable ? "—" : String(usage.totalInquiries)} />
             </div>
             <p className="mt-2 text-[10px] text-subtle">
               Measured {when(usage.measuredAt)} · window {when(usage.periodStart)} – {when(usage.periodEnd)}.

@@ -225,7 +225,7 @@ check("renewal eligibility requires an active paid period in the future", () => 
 check("purchase eligibility excludes an active paid subscription", () => {
   assert.equal(isPurchaseEligible(null), true);
   assert.equal(isPurchaseEligible({ ...base, plan: "trial", status: "trialing" }), true);
-  assert.equal(isPurchaseEligible({ ...base, plan: "starter", status: "active" }), false);
+  assert.equal(isPurchaseEligible({ ...base, plan: "starter", status: "active" }, now), false);
 });
 
 check("purchase period starts now; renewal extends from the existing end", () => {
