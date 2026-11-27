@@ -43,7 +43,9 @@ export async function activateStarter(db: Firestore, input: ActivationInput): Pr
       workspaceId: input.workspaceId,
       plan: "starter",
       status: "active",
-      trialStartedAt: (existing?.trialStartedAt ?? null) as FirestoreTime | null,
+      trialStartedAt: (existing?.trialStartedAt
+        ? Timestamp.fromDate(existing.trialStartedAt)
+        : null) as unknown as FirestoreTime | null,
       trialEndsAt: (existing?.trialEndsAt ? Timestamp.fromDate(existing.trialEndsAt) : null) as FirestoreTime | null,
       currentPeriodStartedAt: Timestamp.fromDate(now),
       currentPeriodEndsAt: Timestamp.fromDate(periodEnd),
