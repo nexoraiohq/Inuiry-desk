@@ -1,116 +1,156 @@
-# Inquiry Desk 
+# Inquiry Desk
 
 > Never lose track of a potential customer.
 
-A customer-inquiry workspace for small teams: capture, organize, track, and follow
-up with every potential customer — so nothing slips through.
+Inquiry Desk is a customer-inquiry workspace for small teams. It captures inquiries,
+tracks follow-ups and communications, reports on performance, sends in-app reminders,
+and supports a subscription experience with simulated billing.
 
-This repository currently contains **Phase 1: Foundation** — the app shell, the
-visual design system, and route placeholders. No data layer is wired up yet.
+Current status: **Phases 1–10.2 implemented and deployed.**
 
 ---
 
 ## Stack
 
-| Layer      | Choice                                    |
-| ---------- | ----------------------------------------- |
-| Framework  | Next.js 16 (App Router, Turbopack)        |
-| Language   | TypeScript (strict)                       |
-| Styling    | Tailwind CSS 4                            |
-| Icons      | Lucide React                              |
-| Fonts      | Local `@font-face` via `next/font/local`  |
+| Layer      | Choice                                              |
+| ---------- | --------------------------------------------------- |
+| Framework  | Next.js 16 (App Router, Turbopack, Cache Components) |
+| Language   | TypeScript (strict)                                 |
+| Styling    | Tailwind CSS 4                                      |
+| Icons      | Lucide React                                        |
+| Auth/Data  | Firebase Authentication + Cloud Firestore           |
+| Server     | Firebase Admin SDK (server-only)                    |
+| Deployment | Vercel                                              |
+| Fonts      | Self-hosted General Sans + Satoshi                  |
 
 ## Getting started
 
 ```bash
 npm install
+cp .env.example .env.local
+# fill in NEXT_PUBLIC_FIREBASE_* values from Firebase Console
 npm run dev      # http://localhost:3000
 ```
 
-| Script          | Purpose                    |
-| --------------- | -------------------------- |
-| `npm run dev`   | Development server         |
-| `npm run build` | Production build           |
-| `npm run start` | Serve the production build |
-| `npm run lint`  | ESLint                     |
+| Script               | Purpose                                             |
+| -------------------- | --------------------------------------------------- |
+| `npm run dev`        | Development server                                  |
+| `npm run build`      | Production build                                    |
+| `npm run start`      | Serve the production build                          |
+| `npm run lint`       | ESLint                                              |
+| `npm test`           | Subscription entitlement unit tests                 |
+
+Dark mode is the default. The header toggle switches to light and back; the choice
+is stored in `localStorage` as `inquiry-desk-theme`.
 
 ## Routes
 
-| Route         | State                          |
-| ------------- | ------------------------------ |
-| `/`           | Redirects to `/dashboard`      |
-| `/dashboard`  | Overview: metric + panel shells |
-| `/inquiries`  | Empty state                    |
-| `/follow-ups` | Empty state                    |
-| `/reports`    | Empty state                    |
-| `/settings`   | Empty state                    |
-| `/login`      | Placeholder (auth is later)    |
+| Route                      | Purpose                                              |
+| -------------------------- | ---------------------------------------------------- |
+| `/`                        | Redirects to `/dashboard`                            |
+| `/dashboard`               | Workspace overview, KPIs, follow-up watch, activity  |
+| `/inquiries`               | Inquiry list, filters, pinning, archiving, ordering  |
+| `/inquiries/[id]`          | Inquiry detail, status, follow-ups, communications   |
+| `/follow-ups`              | Follow-up list, filters, groups, completion          |
+| `/follow-ups/[id]`         | Follow-up detail, reschedule, cancel, complete       |
+| `/reports`                 | Performance reports, charts and CSV export           |
+| `/settings`                | Business profile, preferences, sources, account, subscription |
+| `/login`, `/register`      | Firebase email/password authentication               |
+| `/api/cron/reminders`      | Secured daily reminder sweep (Bearer `CRON_SECRET`) |
+| `/api/subscription/*`      | State, trial, access check, checkout, cancel, billing history |
 
-All routes are statically rendered.
+Route access is gated by `AuthGuard` for UX; Firestore security rules are the real
+authority. All workspace data is scoped to `workspaces/{uid}`.
+
+## Features
+
+- **Inquiries** — create, edit, status changes, pinning, archiving, manual order,
+  detail view, call/WhatsApp links and activity history.
+- **Follow-ups** — create, complete, reschedule, cancel, delete, due grouping,
+  schedule-version safeguards and notifications.
+- **Communications** — manually logged interactions with channel/outcome validation.
+- **Reports** — Firestore-derived metrics and trends, bounded reads, All time range,
+  CSV export, no fabricated figures.
+- **Dashboard** — live KPI band, follow-up watch, recent inquiries and activity.
+- **Notifications** — Firestore-backed, realtime, persisted read/delete actions,
+  derived alerts, durable delete-all.
+- **Reminders** — provider-independent engine, secured cron route, Firebase Admin
+  sweep, idempotent generation, in-app delivery only.
+- **Subscription** — 14-day trials, entitlements, grandfathering, simulated checkout,
+  billing history, cancellation at period end, simulated renewal. **No real payments.**
+- **Realtime** — one workspace listener coalesces changes and refreshes dashboard,
+  settings, subscription, lists, reports and notifications within seconds.
+
+## Data model
+
+Workspace-scoped Firestore collections under `workspaces/{uid}`:
+
+- `inquiries`, `followUps`, `communications`, `activities`
+- `notifications`, `reminderJobs`
+- `subscription/current` — plan, status, trial and period timestamps, provider fields
+- `checkouts`, `billing` — simulated transactions and sessions
+
+Top-level `trialClaims/{sha256(email)}` prevents repeated trials after account
+deletion/recreation. See `FIREBASE_SETUP.md` and `DESIGN.md` for full details.
 
 ## Design system
 
-Tokens live in `app/globals.css` under `@theme`:
+The visual system is documented in `DESIGN.md`. Tokens live in `app/globals.css`
+under `@theme` and are mirrored for dark mode:
 
-| Token          | Value     | Use                              |
-| -------------- | --------- | -------------------------------- |
-| `canvas`       | `#FFFFFF` | Page background                  |
-| `surface`      | `#F7F8FC` | Subtle fills, hover states       |
-| `line`         | `#E8EAF2` | Borders                          |
-| `ink`          | `#111827` | Primary text, active nav pill    |
-| `muted`        | `#6B7280` | Secondary text                   |
-| `brand`        | `#4F46E5` | Primary action, accents          |
-| `success`      | `#16A34A` | Success states                   |
+| Role     | Light      | Dark       | Use                      |
+| -------- | ---------- | ---------- | ------------------------ |
+| canvas   | `#f5f5f7`  | `#000000`  | Page background          |
+| surface  | `#ffffff`  | `#1c1c1e`  | Cards, inputs, popovers  |
+| line     | `#d2d2d7`  | `#38383a`  | Hairlines                |
+| ink      | `#1d1d1f`  | `#f5f5f7`  | Primary text             |
+| brand    | `#0071e3`  | `#0a84ff`  | Primary actions, links   |
+| success  | `#248a3d`  | `#30d158`  | Positive status          |
+| danger   | `#b42318`  | `#ff453a`  | Destructive actions      |
 
-**Typography** — two local Fontshare families (self-hosted, no Google Fonts):
+Principles: monochrome base, one accent, flat surfaces, 12px cards, 8px controls,
+hairline dividers, generous whitespace, real data only.
 
-- **General Sans** (400–700) — headings and display; headings render at weight
-  700 with `-0.02em` tracking.
-- **Satoshi** (400/500/700) — body and UI text.
+## Environment variables
 
-## Architecture
+Client (public, from Firebase Console):
 
 ```
-app/
-  layout.tsx              Root layout: local fonts, metadata
-  page.tsx                "/" → redirect(/dashboard)
-  globals.css             Design tokens (@theme) + base typography
-  fonts/                  Self-hosted woff2 files
-  login/page.tsx          Standalone route (outside the shell)
-  (app)/
-    layout.tsx            Wraps every signed-in route in AppShell
-    dashboard/…           Overview page
-    inquiries/…           Placeholder
-    follow-ups/…          Placeholder
-    reports/…             Placeholder
-    settings/…            Placeholder
-components/
-  layout/                 AppShell, Sidebar, NavList, MobileDrawer, Topbar, HeaderActions
-  dashboard/              MetricCard placeholder
-  ui/                     Button, Card, Badge, EmptyState primitives
-  brand.tsx               BrandMark / BrandName
-lib/
-  navigation.ts           Single source of truth for nav + page metadata
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
 ```
 
-**Shell behaviour**
+Server-only (never commit, never prefix with `NEXT_PUBLIC_`):
 
-- Desktop sidebar collapses between 264px and 76px (icon-only, with tooltips).
-- Below `lg` the sidebar is replaced by a hamburger-opened drawer that closes on
-  Escape, overlay tap, or navigation.
-- The header carries the page title, a search affordance, notifications, profile
-  access, and the primary **Add Inquiry** action.
+```
+FIREBASE_ADMIN_PROJECT_ID
+FIREBASE_ADMIN_CLIENT_EMAIL
+FIREBASE_ADMIN_PRIVATE_KEY
+CRON_SECRET
+```
 
-## Phase 1 scope
+Keep `FIREBASE_ADMIN_PRIVATE_KEY` on one line with literal `\n` escapes.
 
-Included: foundation, app shell, design system, route placeholders.
+## Deployment
 
-Intentionally deferred (placeholders are visibly marked "Soon"):
+Production alias: `https://inuiry-desk.vercel.app`.
 
-- Add Inquiry — Phase 4
-- Search, notifications, sign-in
-- AI, payments, WhatsApp/email integrations, staff management, multi-tenant admin
-- Firebase / any data layer
+Firestore rules and indexes are deployed from `firestore.rules` and
+`firestore.indexes.json` with the Firebase CLI. Reminder cron is registered in
+`vercel.json` as `0 3 * * *` and invokes `/api/cron/reminders` with Bearer
+`CRON_SECRET`.
 
-No fake customer data or invented metrics are rendered anywhere; metric cards
-state "No data yet" until a real data source is connected.
+## Documentation
+
+- `FIREBASE_SETUP.md` — Firebase rules, indexes, reminder architecture and cost notes
+- `DESIGN.md` — design tokens, type scale, components and layout rules
+
+## Not included
+
+Payment gateway integration (M-Pesa, Stripe, cards), webhooks, automatic recurring
+charges, real email/SMS/WhatsApp/push delivery, AI, staff seats, multi-tenant admin,
+advanced reporting and paid infrastructure upgrades. Billing is simulated end to end.
