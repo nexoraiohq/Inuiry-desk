@@ -2,9 +2,9 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -22,11 +22,14 @@ export type AuthStatus =
 type AuthContextValue = {
   user: User | null;
   status: AuthStatus;
+  /** Re-reads the current Firebase user after profile edits. */
+  refreshUser: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   status: "loading",
+  refreshUser: () => undefined,
 });
 
 /**
@@ -42,6 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>(
     firebaseConfigured ? "loading" : "unconfigured"
   );
+  const [, forceProfileUpdate] = useState(0);
+
+  const refreshUser = useCallback(() => {
+    // onAuthStateChanged does not fire for updateProfile; bump the context so
+    // consumers immediately re-read the mutated Firebase user object.
+    forceProfileUpdate((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!firebaseConfigured || !auth) return;
@@ -54,9 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const value = useMemo(() => ({ user, status }), [user, status]);
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // A fresh value object on every render makes profile edits visible to all
+  // consumers as soon as refreshUser bumps profileVersion.
+  return (
+    <AuthContext.Provider value={{ user, status, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

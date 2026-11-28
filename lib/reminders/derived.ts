@@ -1,7 +1,7 @@
-import { doc, getDoc, runTransaction, serverTimestamp, Timestamp, type Firestore } from "firebase/firestore";
+import { doc, getDocFromServer, runTransaction, serverTimestamp, Timestamp, type Firestore } from "firebase/firestore";
 import { firestore } from "@/lib/dashboard/service";
 import { groupFor } from "@/lib/follow-ups/date";
-import { dayKeyInZone, startOfDayInZone } from "@/lib/datetime/zone";
+import { dayKeyInZone } from "@/lib/datetime/zone";
 import type { FollowUpRecord, InquiryRecord } from "@/lib/dashboard/types";
 
 type Candidate = {
@@ -24,7 +24,7 @@ export async function syncDerivedNotifications(
   inquiries: InquiryRecord[]
 ): Promise<number> {
   const db: Firestore = firestore();
-  const workspaceSnap = await getDoc(doc(db, "workspaces", uid));
+  const workspaceSnap = await getDocFromServer(doc(db, "workspaces", uid));
   const cleared = workspaceSnap.data()?.notificationClearedAt;
   const clearedAt = cleared && typeof cleared.toDate === "function" ? cleared.toDate() : null;
   const now = new Date();
@@ -45,9 +45,9 @@ export async function syncDerivedNotifications(
       inquiryId: item.inquiryId,
       followUpId: item.id,
       scheduledFor: item.dueAt,
-      // A follow-up was already "due today" from the start of its due day, so
-      // clearing notifications today must not recreate it later today.
-      conditionAt: startOfDayInZone(item.dueAt),
+      // The condition existed when the follow-up was created. A clear action
+      // must not recreate notifications for follow-ups that already existed.
+      conditionAt: item.createdAt,
       deduplicationKey: `${item.id}:${type}:${today}`,
     });
   }
@@ -67,10 +67,19 @@ export async function syncDerivedNotifications(
   }
 
   let created = 0;
+  const workspaceRef = doc(db, "workspaces", uid);
   for (const candidate of candidates.slice(0, 30)) {
     if (clearedAt && candidate.conditionAt.getTime() <= clearedAt.getTime()) continue;
     const ref = doc(db, "workspaces", uid, "notifications", candidate.id);
     const didCreate = await runTransaction(db, async (transaction) => {
+      // Re-read the marker inside the transaction: a delete-all may have
+      // committed while this sync was already in flight.
+      const currentWorkspace = await transaction.get(workspaceRef);
+      const currentCleared = currentWorkspace.data()?.notificationClearedAt;
+      const currentClearedAt = currentCleared && typeof currentCleared.toDate === "function"
+        ? currentCleared.toDate()
+        : null;
+      if (currentClearedAt && candidate.conditionAt.getTime() <= currentClearedAt.getTime()) return false;
       if ((await transaction.get(ref)).exists()) return false;
       transaction.set(ref, {
         ...candidate,

@@ -74,7 +74,7 @@ export function subscribeReminders(
       collection(firestore(), "workspaces", uid, "notifications"),
       where("status", "==", "delivered"),
       orderBy("createdAt", "desc"),
-      limit(50)
+      limit(200)
     ),
     (snapshot) => onData(snapshot.docs.map((item) => parse(item as DocumentSnapshot))),
     () => onError?.("Could not listen for new notifications.")

@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import {
   FollowUpGroupBadge,
@@ -52,6 +53,7 @@ const GROUP_ORDER: FollowUpGroup[] = ["overdue", "today", "upcoming", "completed
 type Sort = "soonest" | "latest";
 
 export function FollowUpsView({ uid }: { uid: string }) {
+  const revision = useWorkspaceRevision();
   const [records, setRecords] = useState<FollowUpRecord[]>([]);
   const [counts, setCounts] = useState<FollowUpCounts | null>(null);
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
@@ -93,7 +95,7 @@ export function FollowUpsView({ uid }: { uid: string }) {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [loadData]);
+  }, [loadData, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);

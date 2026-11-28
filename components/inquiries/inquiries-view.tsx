@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { InquiryFormDialog } from "@/components/inquiries/inquiry-form-dialog";
 import { InquiryActions } from "@/components/inquiries/inquiry-actions";
 import { PriorityBadge, SourceBadge, StatusBadge } from "@/components/inquiries/inquiry-badges";
@@ -46,6 +47,7 @@ import { Select } from "@/components/ui/select";
 type Sort = "newest" | "oldest" | "name" | "manual";
 
 export function InquiriesView({ uid }: { uid: string }) {
+  const revision = useWorkspaceRevision();
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
   const [counts, setCounts] = useState({ total: 0, newCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export function InquiriesView({ uid }: { uid: string }) {
     return () => {
       active = false;
     };
-  }, [loadData]);
+  }, [loadData, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);

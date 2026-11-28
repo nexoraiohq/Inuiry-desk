@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { setWorkspaceDateFormat, setWorkspaceTimeZone } from "@/lib/datetime/zone";
 import { ensureWorkspaceForUser, getWorkspaceSettings } from "@/lib/settings/service";
 import type { WorkspaceSettings } from "@/lib/settings/types";
@@ -31,6 +32,7 @@ const WorkspaceSettingsContext = createContext<ContextValue>({
 /** Loads workspace preferences once and applies the timezone to all date display helpers. */
 export function WorkspaceSettingsProvider({ children }: { children: ReactNode }) {
   const { user, status } = useAuth();
+  const revision = useWorkspaceRevision();
   const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function WorkspaceSettingsProvider({ children }: { children: ReactNode })
     if (status !== "ready" || !user) return;
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, [status, user, load]);
+  }, [status, user, load, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);

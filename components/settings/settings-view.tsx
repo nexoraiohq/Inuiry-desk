@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { AccountSettingsForm } from "@/components/settings/account-settings-form";
 import { BusinessProfileForm } from "@/components/settings/business-profile-form";
@@ -28,6 +29,8 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 
 export function SettingsView({ uid }: { uid: string }) {
   const { settings, loading, error, refresh } = useWorkspaceSettings();
+  const { user } = useAuth();
+  const settingsUpdated = settings?.updatedAt ? new Date(settings.updatedAt).getTime() : 0;
   const [active, setActive] = useState<SectionId>("business");
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -78,11 +81,11 @@ export function SettingsView({ uid }: { uid: string }) {
         </nav>
 
         <div className="min-w-0 space-y-4">
-          {active === "business" ? <BusinessProfileForm settings={settings} onSave={save} /> : null}
-          {active === "preferences" ? <PreferencesForm settings={settings} onSave={save} /> : null}
-          {active === "inquiry" ? <InquiryConfigForm settings={settings} onSave={save} /> : null}
-          {active === "followUps" ? <FollowUpPreferencesForm settings={settings} onSave={save} /> : null}
-          {active === "account" ? <AccountSettingsForm /> : null}
+          {active === "business" ? <BusinessProfileForm key={settingsUpdated} settings={settings} onSave={save} /> : null}
+          {active === "preferences" ? <PreferencesForm key={settingsUpdated} settings={settings} onSave={save} /> : null}
+          {active === "inquiry" ? <InquiryConfigForm key={settingsUpdated} settings={settings} onSave={save} /> : null}
+          {active === "followUps" ? <FollowUpPreferencesForm key={settingsUpdated} settings={settings} onSave={save} /> : null}
+          {active === "account" ? <AccountSettingsForm key={user?.uid ?? "account"} /> : null}
           {active === "subscription" ? <SubscriptionForm /> : null}
         </div>
       </div>

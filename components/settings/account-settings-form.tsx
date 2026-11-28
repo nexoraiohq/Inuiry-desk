@@ -10,7 +10,7 @@ import { sendPasswordReset } from "@/lib/auth";
 import { updateAccountDisplayName } from "@/lib/settings/service";
 
 export function AccountSettingsForm() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [name, setName] = useState(user?.displayName ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -25,6 +25,7 @@ export function AccountSettingsForm() {
     setSuccess(null);
     try {
       await updateAccountDisplayName(user, name);
+      refreshUser();
       setSuccess("Display name updated.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not update display name.");

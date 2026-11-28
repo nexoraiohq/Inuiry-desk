@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { Notice } from "@/components/ui/notice";
 import { formatRelative } from "@/lib/dashboard/format";
 import { syncDerivedNotifications } from "@/lib/reminders/derived";
@@ -28,6 +29,7 @@ import type { ReminderNotification } from "@/lib/reminders/types";
 /** Database-backed workspace notifications, updated in realtime. */
 export function NotificationsMenu() {
   const { user, status } = useAuth();
+  const revision = useWorkspaceRevision();
   const [reminders, setReminders] = useState<ReminderNotification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export function NotificationsMenu() {
     if (status !== "ready" || !user) return;
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, [status, user, load]);
+  }, [status, user, load, revision]);
 
   useEffect(() => {
     if (status !== "ready" || !user) return;
@@ -131,7 +133,7 @@ export function NotificationsMenu() {
         <Bell className="size-[18px]" aria-hidden="true" />
         {total > 0 ? (
           <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
-            {total > 9 ? "9+" : total}
+            {total}
           </span>
         ) : null}
       </button>
@@ -140,7 +142,9 @@ export function NotificationsMenu() {
         <div role="menu" className="absolute right-0 top-11 z-50 w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-canvas p-3 shadow-raised">
           <div className="flex items-center justify-between gap-2">
             <p className="font-display text-[13px] font-semibold text-ink">Notifications</p>
-            <span className="text-[11px] text-subtle">{loading ? "Updating…" : `${unread.length} unread`}</span>
+            <span className="text-[11px] text-subtle">
+              {loading ? "Updating…" : `${unread.length} unread · ${reminders.length} total`}
+            </span>
           </div>
 
           {error ? <div className="mt-2"><Notice tone="danger" message={error} onDismiss={() => setError(null)} /></div> : null}

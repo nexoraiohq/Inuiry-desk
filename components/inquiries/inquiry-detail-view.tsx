@@ -32,6 +32,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { PageIntro } from "@/components/ui/page-intro";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { formatDateTime, humanize } from "@/lib/dashboard/format";
@@ -61,6 +62,7 @@ export function InquiryDetailView({
   uid: string;
   inquiryId: string;
 }) {
+  const revision = useWorkspaceRevision();
   const [detail, setDetail] = useState<InquiryDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export function InquiryDetailView({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [loadDetail]);
+  }, [loadDetail, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);

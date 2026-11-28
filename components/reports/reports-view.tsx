@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Download, RefreshCw } from "lucide-react";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { useWorkspaceSettings } from "@/components/settings/workspace-settings-provider";
 import { BarList, TrendBars } from "@/components/reports/charts";
 import { ReportsSkeleton } from "@/components/reports/reports-skeleton";
@@ -62,6 +63,7 @@ function Section({ title, description, children }: { title: string; description:
 
 export function ReportsView({ uid }: { uid: string }) {
   const { settings } = useWorkspaceSettings();
+  const revision = useWorkspaceRevision();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [customStart, setCustomStart] = useState(todayInput());
   const [customEnd, setCustomEnd] = useState(todayInput());
@@ -112,7 +114,7 @@ export function ReportsView({ uid }: { uid: string }) {
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [range, load]);
+  }, [range, load, revision]);
 
   function applyRange(next: RangePreset) {
     setPreset(next);

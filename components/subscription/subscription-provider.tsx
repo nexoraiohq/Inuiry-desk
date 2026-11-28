@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { fetchSubscriptionState } from "@/lib/subscription/client";
 import type { SubscriptionStateView } from "@/lib/subscription/view";
 
@@ -16,6 +17,7 @@ const SubscriptionContext = createContext<SubscriptionContextValue | null>(null)
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, status } = useAuth();
+  const revision = useWorkspaceRevision();
   const [state, setState] = useState<SubscriptionStateView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (status !== "ready" || !user) return;
     const timer = window.setTimeout(() => { void refresh(); }, 0);
     return () => window.clearTimeout(timer);
-  }, [status, user, refresh]);
+  }, [status, user, refresh, revision]);
 
   const active = status === "ready" && Boolean(user);
   return (

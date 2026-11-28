@@ -14,6 +14,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { Notice } from "@/components/ui/notice";
 import { formatDateTime } from "@/lib/dashboard/format";
 import type { CommunicationRecord, FollowUpRecord } from "@/lib/dashboard/types";
@@ -35,6 +36,7 @@ export function CommunicationHistory({
   onChanged?: () => void;
 }) {
   const { user } = useAuth();
+  const revision = useWorkspaceRevision();
   const [records, setRecords] = useState<CommunicationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function CommunicationHistory({
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [load]);
+  }, [load, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);

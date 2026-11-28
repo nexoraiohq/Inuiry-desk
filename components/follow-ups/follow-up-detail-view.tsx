@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { PageIntro } from "@/components/ui/page-intro";
+import { useWorkspaceRevision } from "@/components/live/workspace-live-provider";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/dashboard/format";
 import type { ActivityType, FollowUpRecord, InquiryRecord } from "@/lib/dashboard/types";
@@ -43,6 +44,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function FollowUpDetailView({ uid, id }: { uid: string; id: string }) {
+  const revision = useWorkspaceRevision();
   const [detail, setDetail] = useState<FollowUpDetail | null>(null);
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export function FollowUpDetailView({ uid, id }: { uid: string; id: string }) {
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [load]);
+  }, [load, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);

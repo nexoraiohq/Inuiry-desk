@@ -62,8 +62,8 @@ function when(value: string | null): string {
 function StatusLine({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-medium text-subtle">{label}</p>
-      <p className="mt-1 text-[12px] text-ink">{value}</p>
+      <p className="text-[12px] font-medium text-subtle">{label}</p>
+      <p className="mt-1 text-[13px] text-ink">{value}</p>
     </div>
   );
 }
@@ -203,7 +203,7 @@ export function SubscriptionForm() {
             role="tab"
             aria-selected={tab === item}
             onClick={() => setTab(item)}
-            className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ${
+            className={`rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors ${
               tab === item ? "bg-brand-soft text-brand" : "text-muted hover:bg-surface hover:text-ink"
             }`}
           >
@@ -227,8 +227,8 @@ export function SubscriptionForm() {
         <div className="mt-5 space-y-5">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-4">
             <div>
-              <p className="text-[11px] font-medium text-subtle">Current plan</p>
-              <p className="mt-1 font-display text-[18px] font-semibold text-ink">{getPlan(entitlement.plan).name}</p>
+              <p className="text-[12px] font-medium text-subtle">Current plan</p>
+              <p className="mt-1 font-display text-[20px] font-semibold text-ink">{getPlan(entitlement.plan).name}</p>
             </div>
             <Badge className={unavailable ? "bg-danger-soft text-danger" : statusVariant(entitlement.status)}>
               {unavailable ? "Status unavailable" : STATUS_LABELS[entitlement.status]}
@@ -342,11 +342,11 @@ export function SubscriptionForm() {
                     <p className="font-display text-[15px] font-semibold text-ink">{entry.name}</p>
                     {current ? <Badge variant="brand">Current</Badge> : null}
                   </div>
-                  <p className="mt-2 text-[22px] font-semibold text-ink">{formatPrice(plan)}</p>
-                  <p className="mt-1 text-[11px] text-muted">{entry.description}</p>
+                  <p className="mt-2 font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">{formatPrice(plan)}</p>
+                  <p className="mt-1 text-[12px] text-muted">{entry.description}</p>
                   <ul className="mt-3 space-y-1">
                     {entry.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-2 text-[11px] text-muted">
+                      <li key={feature} className="flex items-center gap-2 text-[12px] text-muted">
                         <Check className="size-3.5 text-success" aria-hidden="true" /> {feature.replace(/([A-Z])/g, " $1")}
                       </li>
                     ))}
@@ -382,11 +382,12 @@ export function SubscriptionForm() {
                 <legend className="text-[11px] font-medium text-subtle">Simulated outcome</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(["success", "failure", "cancel"] as CheckoutOutcome[]).map((option) => (
-                    <label key={option} className="flex items-center gap-2 rounded-lg border border-line bg-canvas px-3 py-2 text-[12px] text-ink">
+                    <label key={option} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink">
                       <input
                         type="radio"
                         name="simulated-outcome"
                         value={option}
+                        className="accent-brand"
                         checked={outcome === option}
                         onChange={() => { setOutcome(option); setResult(null); }}
                       />
